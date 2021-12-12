@@ -8,12 +8,13 @@
 
 #include <curl/curl.h>
 #include <filesystem>
+#include <fstream>
 #include <fuse3/fuse.h>
 #include <iostream>
 #include <map>
 #include <string>
-#include <unordered_set>
 #include <unistd.h>
+#include <unordered_set>
 
 std::unique_ptr<const openapi::Directory> directory;
 
@@ -90,21 +91,25 @@ static int api_readlink(const char *path, char *buf, size_t size) {
 
 void *api_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
   cfg->direct_io = 1;
-
   http::Request request;
   static const std::string HTTP_PREFIX = "http";
   const std::string api_spec_path = getenv("API_SPEC");
   Json::Value json_data;
-  if (api_spec_path.substr(HTTP_PREFIX.length()) == HTTP_PREFIX) {
+  const std::string prefix = api_spec_path.substr(0, HTTP_PREFIX.length());
+  LOG(INFO) << "Reading:" << api_spec_path;
+  if (prefix == HTTP_PREFIX) {
     const auto response = request.fetch(api_spec_path);
     CHECK(response->http_code == 200);
     response->data >> json_data;
   } else {
-    auto file = open(api_spec_path.c_str(), S_IRUSR);
-    static char BUFFER[256];
-    ssize_t size = read(file, &BUFFER, 256);
-    LOG(FATAL) << std::string(BUFFER, size);
-    return 0;
+    std::ifstream stream;
+    stream.open(api_spec_path.c_str());
+    if (!stream.is_open()) {
+      LOG(FATAL) << "Failed to open: |" << api_spec_path << ";";
+    }
+    std::stringstream buffer;
+    buffer << stream.rdbuf();
+    buffer >> json_data;
   }
 
   directory = openapi::NewDirectoryFromJsonValue(json_data);
