@@ -23,8 +23,8 @@ public:
   std::ostream *stream() const { return os_; }
 
 private:
-  const char &level_char_;
   const Level level_;
+  const char &level_char_;
   std::ostream *const os_;
 };
 

@@ -6,7 +6,7 @@ static std::once_flag once_to_map_flag;
 const std::unordered_map<std::string, OPERATIONS> &operations_map() {
   static std::unordered_map<std::string, OPERATIONS> NAME_TO_OPERATION_MAP;
   std::call_once(once_to_map_flag, []() {
-    for (int idx = 0; idx < sizeof(OPERATION_NAMES) / sizeof(const char *);
+    for (unsigned long idx = 0; idx < sizeof(OPERATION_NAMES) / sizeof(const char *);
          ++idx) {
       NAME_TO_OPERATION_MAP[OPERATION_NAMES[idx]] = (OPERATIONS)idx;
     }

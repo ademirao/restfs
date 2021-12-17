@@ -8,7 +8,10 @@
 #include <sstream>
 #include <string>
 
+#include "rest.h"
+
 namespace http {
+
 struct Response final {
   Response() : http_code(-1), data() {}
   int http_code;
@@ -19,12 +22,12 @@ typedef std::function<void(const Response &)> Callback;
 
 class Request final {
 public:
+  Request(const rest::constants::OPERATIONS operation = rest::constants::GET)
+      : operation_(operation) {}
   std::unique_ptr<Response> fetch(const std::string &url);
 
 private:
-  const std::string method_ = "GET";
-
-  const struct curl_slist *headers_;
+  const rest::constants::OPERATIONS operation_;
 };
 } // namespace http
 

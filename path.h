@@ -4,39 +4,60 @@
 #include "logger.h"
 #include "rest.h"
 
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tag_and_trait.hpp>
-#include <ext/pb_ds/trie_policy.hpp>
 #include <filesystem>
+#include <functional>
+#include <memory>
 #include <sys/stat.h>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace path {
+using Path = std::filesystem::path;
+template <typename ValueType>
+using RefValueMap = std::unordered_map<std::string, const ValueType>;
+template <typename ValueType> using PathJsonPair = std::pair<Path, RefValueMap>;
 
-typedef std::filesystem::path Path;
+// ParamName and ParamReference share same implementation, but they mean
+// different concepts. The "reference" to a param happens to be the param name,
+// but it could be implemented as the position. The typedefs below are supposed
+// to capture that difference.
+using ParamReference = std::string;
+using ParamName = std::string;
+using RefSet = std::unordered_set<path::ParamReference>;
 
-namespace pb_ds = __gnu_pbds;
+const RefSet ReferencesSetFromPath(const path::Path &path);
 
 class Info final {
 public:
   Info(const Info &info) : stat(info.stat) {}
-  Info(const struct stat &s, std::vector<rest::constants::OPERATIONS> ops = {})
-      : stat(s) {}
+  Info(const struct stat &s, const Json::Value *j)
+      : stat(s), json(std::move(j)) {}
 
   const struct stat stat;
+  const Json::Value *json;
 };
 
-typedef pb_ds::trie<std::string, const Info *,
-                    pb_ds::trie_string_access_traits<>, pb_ds::pat_trie_tag,
-                    pb_ds::trie_prefix_search_node_update>
-    PathInfoTrie;
-
-std::unique_ptr<const path::Info>
-FileInfo(const std::string &key,
-         const std::vector<rest::constants::OPERATIONS> &operations);
-std::unique_ptr<const path::Info> DirInfo(const std::string &key);
+std::unique_ptr<const path::Info> FileInfo(const std::string &key,
+                                           const Json::Value *json);
+std::unique_ptr<const path::Info> DirInfo(const std::string &key,
+                                          const Json::Value *json);
 
 namespace utils {
-std::vector<path::Path> all_prefixes(const path::Path &path);
+const std::vector<path::Path> all_prefixes(const path::Path &path);
+
+typedef const std::function<const ParamReference(const ParamReference &ref,
+                                                 const std::string &value)>
+    Binder;
+
+static const ParamReference FailOnBinding(const ParamReference &ref,
+                                          const std::string &value) {
+  LOG(FATAL) << "Binding not allowed: " << ref << " <- " << value;
+  return {}; // unreachable
+};
+
+const path::Path CanonicalizeRefs(const path::Path &path);
+const RefSet RefSetFromPath(const path::Path &path);
+const path::Path BindRefs(const path::Path &path, Binder binder);
 } // namespace utils
 
 } // namespace path
