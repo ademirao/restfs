@@ -7,64 +7,72 @@
 #include <ext/pb_ds/tag_and_trait.hpp>
 #include <ext/pb_ds/trie_policy.hpp>
 #include <memory>
+#include <unordered_map>
+#include <map>
 #include <vector>
+
 namespace openapi {
 
 namespace pb_ds = __gnu_pbds;
 
-typedef pb_ds::trie<std::string, const path::Info *,
-                    pb_ds::trie_string_access_traits<>, pb_ds::pat_trie_tag,
-                    pb_ds::trie_prefix_search_node_update>
-    PathInfoTrie;
+class Directory;
 
 } // namespace openapi
 
-std::ostream &operator<<(std::ostream &os, const openapi::PathInfoTrie &d);
+std::ostream &operator<<(std::ostream &os, const openapi::Directory &d);
 
 namespace openapi {
+
+using PathToNodeMap = std::map<path::Path, path::Node>;
 
 class Directory;
 
 std::unique_ptr<const Directory>
 NewDirectoryFromJsonValue(const std::string &host_name,
                           std::unique_ptr<const Json::Value> json_data);
+const Json::Value JsonValueFromPath(const path::Path &path);
 
 class Directory final {
 public:
   Directory(const std::string &directory_url_prefix,
-            std::unique_ptr<const Json::Value> value,
-            std::unique_ptr<const PathInfoTrie> root,
-            std::vector<std::unique_ptr<const path::Info>> infos)
-      : directory_url_prefix_(directory_url_prefix), value_(std::move(value)),
-        root_(std::move(root)), infos_(std::move(infos)) {}
+            PathToNodeMap path_to_node_map,
+            std::unique_ptr<const Json::Value> value)
+      : directory_url_prefix_(directory_url_prefix),
+        path_to_node_map_(std::move(path_to_node_map)),
+        value_(std::move(value)) {}
 
-  PathInfoTrie::const_iterator find(const std::string &path) const;
+  PathToNodeMap::const_iterator find(const std::string &path) const;
 
-  PathInfoTrie::const_iterator begin() const { return root_->begin(); }
+  PathToNodeMap::const_iterator begin() const {
+    return path_to_node_map_.begin();
+  }
 
-  PathInfoTrie::const_iterator end() const { return root_->end(); }
+  PathToNodeMap::const_iterator end() const { return path_to_node_map_.end(); }
 
-  std::pair<PathInfoTrie::const_iterator, PathInfoTrie::const_iterator>
-  prefix_range(const std::string &path) const;
-  
   const std::string &directory_url_prefix() const {
     return directory_url_prefix_;
   }
-  const std::vector<std::unique_ptr<const path::Info>> &infos() const {
-    return infos_;
-  }
-  
+
   operator std::string() const {
     std::stringstream ss;
-    ss << *root_;
+    ss << root();
     return ss.str();
+  }
+
+  const path::Node &root() const {
+    auto root_it = path_to_node_map_.find("/");
+    CHECK(root_it != path_to_node_map_.end())
+    return root_it->second;
+  }
+
+  const openapi::PathToNodeMap path_to_node_map() const {
+    return path_to_node_map_;
   }
 
 private:
   const std::string directory_url_prefix_;
+  const openapi::PathToNodeMap path_to_node_map_;
   const std::unique_ptr<const Json::Value> value_;
-  const std::unique_ptr<const PathInfoTrie> root_;
-  const std::vector<std::unique_ptr<const path::Info>> infos_;
 };
 
 } // namespace openapi

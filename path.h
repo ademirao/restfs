@@ -13,56 +13,79 @@
 
 namespace path {
 using Path = std::filesystem::path;
-template <typename ValueType>
-using RefValueMap = std::unordered_map<std::string, const ValueType>;
-template <typename ValueType> using PathJsonPair = std::pair<Path, RefValueMap>;
 
 // ParamName and ParamReference share same implementation, but they mean
 // different concepts. The "reference" to a param happens to be the param name,
 // but it could be implemented as the position. The typedefs below are supposed
 // to capture that difference.
-using ParamReference = std::string;
+using Reference = std::string;
+using Ref = Reference;
 using ParamName = std::string;
-using RefSet = std::unordered_set<path::ParamReference>;
+using ReferenceSet = std::unordered_set<path::Ref>;
+using RefSet = ReferenceSet;
 
-const RefSet ReferencesSetFromPath(const path::Path &path);
+} // namespace path
 
-class Info final {
+namespace std {
+template <> struct hash<path::Path> {
+  std::size_t operator()(const path::Path &path) const {
+    return hash_value(path);
+  }
+};
+} // namespace std
+
+namespace path {
+class Node final {
 public:
-  Info(const Info &info) : stat(info.stat) {}
-  Info(const struct stat &s, const Json::Value *j)
-      : stat(s), json(std::move(j)) {}
+  Node(const Node &node)
+      : path_(node.path_), stat_(node.stat_), children_(node.children_),
+        metadata_(node.metadata_) {}
+  Node(const Path& path, const struct stat &stat, const void *metadata)
+      : path_(path), stat_(stat), metadata_(metadata) {}
 
-  const struct stat stat;
-  const Json::Value *json;
+  const Path &path() const { return path_; }
+
+  const struct stat &stat() const { return stat_; }
+
+  template <typename Metadata> const Metadata *metadata() const {
+    return metadata_;
+  }
+
+  std::vector<const path::Node *> *mutable_children() { return &children_; }
+
+  const std::vector<const path::Node *> &children() const { return children_; }
+
+private:
+  const Path path_;
+  const struct stat stat_;
+  const void *metadata_;
+  std::vector<const path::Node *> children_;
 };
 
-std::unique_ptr<const path::Info> FileInfo(const std::string &key,
-                                           const Json::Value *json);
-std::unique_ptr<const path::Info> DirInfo(const std::string &key,
-                                          const Json::Value *json);
+path::Node FileNode(const path::Path &key, const Json::Value *json);
+path::Node DirNode(const path::Path &key, const Json::Value *json);
 
 namespace utils {
 const std::vector<path::Path> all_prefixes(const path::Path &path);
 
-typedef const std::function<const ParamReference(const ParamReference &ref,
-                                                 const std::string &value)>
+typedef const std::function<const Ref(const Ref &ref, const std::string &value)>
     Binder;
 
-static const ParamReference FailOnBinding(const ParamReference &ref,
-                                          const std::string &value) {
+static const Ref FailOnBinding(const Ref &ref, const std::string &value) {
   LOG(FATAL) << "Binding not allowed: " << ref << " <- " << value;
   return {}; // unreachable
 };
 
+bool IsReference(const path::Path &path_part);
 const path::Path CanonicalizeRefs(const path::Path &path);
 const RefSet RefSetFromPath(const path::Path &path);
 const path::Path BindRefs(const path::Path &path, Binder binder);
+
 } // namespace utils
 
 } // namespace path
 
-std::ostream &operator<<(std::ostream &os, const path::Info &s);
 std::ostream &operator<<(std::ostream &os, const struct stat &s);
+std::ostream &operator<<(std::ostream &os, const path::Node &n);
 
 #endif

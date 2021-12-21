@@ -10,10 +10,6 @@
 
 #define LOG_FIELD(OBJ, FIELD) #FIELD << ": " << (OBJ).FIELD << ", "
 
-std::ostream &operator<<(std::ostream &os, const path::Info &s) {
-  return os << s.stat;
-}
-
 std::ostream &operator<<(std::ostream &os, const struct stat &s) {
   return os << "stat{" << LOG_FIELD(s, st_dev) << LOG_FIELD(s, st_ino)
             << LOG_FIELD(s, st_mode) << LOG_FIELD(s, st_nlink)
@@ -26,13 +22,22 @@ std::ostream &operator<<(std::ostream &os, const struct stat &s) {
             << "}";
 }
 
+std::ostream &operator<<(std::ostream &os, const path::Node &n) {
+
+  os << n.path() << ": [";
+  for (const auto &child : n.children()) {
+    os << *child << ",";
+  }
+  os << "]";
+  return os;
+}
+
 namespace path {
-std::unique_ptr<const path::Info> FileInfo(const std::string &key,
-                                           const Json::Value *json) {
+path::Node FileNode(const path::Path &path, const Json::Value *json) {
 
   struct stat s;
   s.st_dev = 0;
-  s.st_ino = std::hash<std::string>{}(key); /* Inode number */
+  s.st_ino = std::hash<path::Path>{}(path); /* Inode number */
   s.st_uid = getuid();                      /* User ID of owner */
   s.st_gid = getgid();                      /* Group ID of owner */
   s.st_mode = S_IFREG | 0000;               /* File type and mode */
@@ -60,23 +65,22 @@ std::unique_ptr<const path::Info> FileInfo(const std::string &key,
   s.st_size = 0;    /* Total size, in bytes */
   s.st_blksize = 0; /* Block size for filesystem I/O */
   s.st_blocks = 0;  /* Number of 512B blocks allocated */
-  return std::make_unique<path::Info>(s, json);
+  return path::Node(path, s, json);
 }
 
-std::unique_ptr<const path::Info> DirInfo(const std::string &key,
-                                          const Json::Value *json) {
+path::Node DirNode(const path::Path &path, const Json::Value *json) {
   struct stat s;
   s.st_dev = 0;
-  s.st_ino = std::hash<std::string>{}(key); /* Inode number */
-  s.st_uid = getuid();                      /* User ID of owner */
-  s.st_gid = getgid();                      /* Group ID of owner */
-  s.st_mode = S_IFDIR | 0755;               /* File type and mode */
-  s.st_nlink = 0;                           /* Number of hard links */
-  s.st_rdev = 0;                            /* ID of device containing file */
-  s.st_size = 0;                            /* Total size, in bytes */
-  s.st_blksize = 0;                         /* Block size for filesystem I/O */
+  s.st_ino = std::hash<std::string>{}(path); /* Inode number */
+  s.st_uid = getuid();                       /* User ID of owner */
+  s.st_gid = getgid();                       /* Group ID of owner */
+  s.st_mode = S_IFDIR | 0755;                /* File type and mode */
+  s.st_nlink = 0;                            /* Number of hard links */
+  s.st_rdev = 0;                             /* ID of device containing file */
+  s.st_size = 0;                             /* Total size, in bytes */
+  s.st_blksize = 0;                          /* Block size for filesystem I/O */
   s.st_blocks = 0; /* Number of 512B blocks allocated */
-  return std::make_unique<path::Info>(s, json);
+  return path::Node(path, s, json);
 }
 
 namespace utils {
@@ -91,34 +95,32 @@ const std::vector<path::Path> all_prefixes(const path::Path &path) {
 }
 
 const path::Path CanonicalizeRefs(const path::Path &path) {
-  return BindRefs(path,
-                  [](const ParamReference &ref, const std::string &value)
-                      -> const ParamReference { return ref; });
+  return BindRefs(
+      path,
+      [](const Reference &ref, const std::string &value) -> const Reference {
+        return ref;
+      });
+}
+
+bool IsReference(const path::Path &path) {
+  const std::string &filename = path.filename();
+  return filename.length() > 0 && filename[0] == '{';
 }
 
 const path::Path BindRefs(const path::Path &path, Binder binder) {
   path::Path new_path;
-  LOG(INFO) << "Path: " << path;
   for (path::Path::const_iterator it = path.begin(), end = path.end();
        it != end; ++it) {
+    if (!IsReference(*it)) {
+      new_path /= *it;
+      continue;
+    }
     const std::string it_str = *it;
-    const size_t it_str_len = it_str.length();
-    if (it_str_len == 0) {
-      continue;
-    }
 
-    if (it_str[0] != '{') {
-      new_path /= *it;
-      continue;
-    }
-
-    if (it_str.back() != '}') {
-      new_path /= *it;
-      continue;
-    }
-
-    auto ref_bind = it_str.substr(1, it_str.length() - 2);
-    auto eq_char_pos = ref_bind.find('=');
+    bool complete_ref = (it_str.back() == '}');
+    auto ref_bind =
+        it_str.substr(1, it_str.length() - 1 - ((complete_ref) ? 1 : 0));
+    auto eq_char_pos = ref_bind.find(':');
     std::pair<std::string, std::string> canonical_ref_value =
         (eq_char_pos != ref_bind.npos)
             ? std::make_pair(ref_bind.substr(0, eq_char_pos),
@@ -135,11 +137,10 @@ const path::Path BindRefs(const path::Path &path, Binder binder) {
 } // namespace utils
 
 const ::path::RefSet RefSetFromPath(const path::Path &path) {
-  typedef std::unordered_set<ParamReference> ParamRefSet;
-  ParamRefSet ref_set;
+  RefSet ref_set;
   BindRefs(path,
-           [&ref_set](const ParamReference &ref,
-                      const std::string &value) -> const ParamReference {
+           [&ref_set](const Reference &ref,
+                      const std::string &value) -> const Reference {
              ref_set.insert(ref);
              return ref;
            });

@@ -24,16 +24,10 @@ int api_getattr(const char *path, struct stat *stat,
   LOG(INFO) << "api_get_attr: " << path;
   auto found = directory->find(path);
   if (found == directory->end()) {
-    auto it_pair = directory->prefix_range(path);
-    if (it_pair.first == it_pair.second) {
-      return -ENOENT;
-    }
-    *stat = path::DirInfo(path, nullptr)->stat;
-  } else {
-    *stat = found->second->stat;
+    LOG(INFO) << "NOT FOUND!";
+    return -ENOENT;
   }
-  stat->st_atime = time(nullptr);
-  stat->st_mtime = time(nullptr);
+  *stat = found->second.stat();
   return 0;
 }
 
@@ -81,37 +75,28 @@ int api_readdir(const char *path_str, void *buf, fuse_fill_dir_t filler,
                 enum fuse_readdir_flags flag) {
   LOG(INFO) << "api_readdir " << path_str << ", " << filler << ", " << offset
             << ", " << fi;
-  const ::path::Path path(path::utils::CanonicalizeRefs(path_str));
-  // Substituia por uma utilizacao mais eficiente de prefix range. Nao
-  // precisamos descer a arvore toda. Precisamos apenas dos filhos imediatos.
-  auto it_pair = directory->prefix_range(path);
-
-  if (it_pair.first == it_pair.second) {
-    return -ENOENT;
-  }
+  const path::Path path(path::utils::CanonicalizeRefs(path_str));
+  const path::Path &filename(path.filename());
 
   std::unordered_set<std::string> already_reported;
-  for (auto it = it_pair.first; it != it_pair.second; ++(it)) {
-    const path::Path sub_path(it->first);
-    const path::Path relative_sub_path(
-        std::filesystem::relative(sub_path, path));
 
-    if (relative_sub_path.empty()) {
-      continue;
-    }
+  // Substituia por uma utilizacao mais eficiente de prefix range. Nao
+  // precisamos descer a arvore toda. Precisamos apenas dos filhos imediatos.
+  auto it = directory->find(path);
+  if (it == directory->end()) {
+    LOG(INFO) << "Not found";
+    return -ENOENT;
+  }
+  LOG(INFO) << it->second;
 
-    const std::string &sub_path_first_part = *(relative_sub_path.begin());
-
-    if (already_reported.find(sub_path_first_part) != already_reported.end()) {
-      continue;
-    }
-
-    if (filler(buf, sub_path_first_part.c_str(), &(it->second->stat), 0,
+  for (auto child : it->second.children()) {
+    LOG(INFO) << *child;
+    if (filler(buf, child->path().filename().c_str(), &(child->stat()), 0,
                (fuse_fill_dir_flags)0)) {
       return -1;
     }
-    already_reported.insert(sub_path_first_part);
   }
+
   return 0; // Tell Fuse we're done.
 }
 
@@ -145,7 +130,9 @@ void *api_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
   const std::string &api_addr = getenv("API_ADDR");
   directory =
       openapi::NewDirectoryFromJsonValue(api_addr, std::move(json_data));
-  // LOG(INFO) << *directory;
+
+  LOG(INFO) << "Loaded dir:" << *directory;
+
   return 0;
 }
 
