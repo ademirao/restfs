@@ -35,22 +35,19 @@ namespace openapi {
 
 template <typename InputIt>
 std::string join(InputIt first, InputIt last, const std::string &separator = "",
-                 const std::string &concluder = "") {
+                 const std::string &starter = "{",
+                 const std::string &concluder = "}") {
   if (first == last) {
-    return concluder;
+    return starter + concluder;
   }
 
   std::stringstream ss;
-  ss << *first;
-  ++first;
-
-  while (first != last) {
-    ss << separator;
-    ss << *first;
-    ++first;
-  }
-
-  ss << concluder;
+  ss << starter << *first << [&first, &last, &separator, &ss]() {
+    for (; first != last; ++first) {
+      ss << separator << *first;
+    }
+    return "";
+  }() << concluder;
 
   return ss.str();
 }
@@ -99,32 +96,46 @@ public:
     }
     return *current;
   }
-  path::Node OperationNode(const rest::constants::OPERATIONS op,
-                           const Json::Value *json) const {
-    path::NodeMode node_mode = 0; /* File type and mode */
-    std::vector<std::string> query_suffix;
-    path::Path filename = "";
-    const Json::Value &parameters = Find(*json, "parameters", Json::Value::null);
+
+  path::Node GetOperationNode(const Json::Value *json) const {
+    return path::Node("", {}, json, sizeof(json));
+  }
+
+  std::vector<std::string>
+  FindRequiredQueryParams(const Json::Value *json) const {
+    std::vector<std::string> required_query_params;
+    const Json::Value &parameters =
+        Find(*json, "parameters", Json::Value::null);
     for (const auto parameter : parameters) {
       const auto &param = ResolveRef(parameter);
       const auto &in = Find(param, "in", Json::Value::null);
-      if (in.asString() == "query")
+      if (in.asString() != "query")
         continue;
+
       const auto &required_param = Find(param, "required", Json::Value::null);
       bool required =
           (required_param != Json::Value::null) && required_param.asBool();
       if (required) {
         const auto &name = Find(param, "name", Json::Value::null);
-        query_suffix.push_back(name.asString());
+        required_query_params.push_back(name.asString());
       }
     }
-    std::sort(query_suffix.begin(), query_suffix.end());
+    std::sort(required_query_params.begin(), required_query_params.end());
+    return required_query_params;
+  }
 
-    if (!query_suffix.empty()) {
-      filename +=
-          "{" + join(query_suffix.begin(), query_suffix.end(), ",") + "}.";
-    }
-    filename += std::string(rest::constants::OPERATION_NAMES[op]) + ".json";
+  path::Node OperationNode(const rest::constants::OPERATIONS op,
+                           const Json::Value *json) const {
+    path::NodeMode node_mode = 0; /* File type and mode */
+
+    std::vector<std::string> required_query_params =
+        FindRequiredQueryParams(json);
+    path::Path filename =
+        ((required_query_params.empty())
+             ? ""
+             : join(required_query_params.begin(), required_query_params.end(),
+                    ",", "{", "}.")) +
+        std::string(rest::constants::OPERATION_NAMES[op]) + ".json";
 
     switch (op) {
     case rest::constants::HEAD:
