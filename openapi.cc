@@ -55,13 +55,31 @@ std::string join(InputIt first, InputIt last, const std::string &separator = "",
   return ss.str();
 }
 
+static const Json::Value *Find(const Json::Value &value,
+                               const std::string &key) {
+  return value.find(key.c_str(), key.c_str() + key.length());
+}
+
+static const Json::Value &Find(const Json::Value &value, const std::string &key,
+                               const Json::Value &default_value) {
+  const Json::Value *found = Find(value, key);
+  return (found == nullptr) ? default_value : *found;
+}
+
+static const Json::Value &FindOrDie(const Json::Value &value,
+                                    const std::string &key) {
+  const Json::Value *found = Find(value, key);
+  CHECK(found != nullptr);
+  return *found;
+}
+
 class NodeFactory final {
 public:
   NodeFactory(const Json::Value *root) : root_(root) {}
   ~NodeFactory() {}
 
   const Json::Value &ResolveRef(const Json::Value &value) const {
-    const Json::Value &ret_value = value.get("$ref", Json::Value::null);
+    const Json::Value &ret_value = Find(value, "$ref", Json::Value::null);
     if (ret_value == Json::Value::null) {
       return value;
     }
@@ -70,13 +88,14 @@ public:
     CHECK(ref_value[0] == '#');
     const path::Path ref_value_path(ref_value.substr(1));
     const Json::Value *current = root_;
-    for (const auto &part : ref_value_path) {      
+    for (const auto &part : ref_value_path) {
       const std::string part_str = part.string();
-      if (part_str == "/") continue;
-      const char* part_str_end = part_str.c_str() + part.string().length();
+      if (part_str == "/")
+        continue;
+      const char *part_str_end = part_str.c_str() + part.string().length();
       current = current->find(part_str.c_str(), part_str_end);
-      CHECK_M(current != nullptr, ref_value_path.string() +
-                                                 " path " + part.string());
+      CHECK_M(current != nullptr, "Couldn't find part (" + part.string() +
+                                      ") in " + ref_value_path.string());
     }
     return *current;
   }
@@ -85,17 +104,17 @@ public:
     path::NodeMode node_mode = 0; /* File type and mode */
     std::vector<std::string> query_suffix;
     path::Path filename = "";
-    const Json::Value &parameters = json->get("parameters", Json::Value::null);
+    const Json::Value &parameters = Find(*json, "parameters", Json::Value::null);
     for (const auto parameter : parameters) {
       const auto &param = ResolveRef(parameter);
-      const auto &in = param.get("in", Json::Value::null);
+      const auto &in = Find(param, "in", Json::Value::null);
       if (in.asString() == "query")
         continue;
-      const auto &required_param = param.get("required", Json::Value::null);
+      const auto &required_param = Find(param, "required", Json::Value::null);
       bool required =
           (required_param != Json::Value::null) && required_param.asBool();
       if (required) {
-        const auto &name = param.get("name", Json::Value::null);
+        const auto &name = Find(param, "name", Json::Value::null);
         query_suffix.push_back(name.asString());
       }
     }
