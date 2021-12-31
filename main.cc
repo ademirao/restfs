@@ -6,6 +6,7 @@
 #include "path.h"
 #include "rest.h"
 
+#include <algorithm>
 #include <curl/curl.h>
 #include <filesystem>
 #include <fstream>
@@ -31,20 +32,53 @@ int api_getattr(const char *path, struct stat *stat,
   return 0;
 }
 
+inline bool ends_with(const std::string &value, const std::string &ending) {
+  if (ending.size() > value.size())
+    return false;
+  return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
 int api_read(const char *in_path, char *buf, size_t size, off_t offset,
              struct fuse_file_info *fi) {
   LOG(INFO) << "api_read " << in_path;
-  http::Request request;
-  const std::filesystem::path path =
-      std::filesystem::path(in_path).parent_path();
 
-  auto response =
-      request.fetch(directory->directory_url_prefix() + path.string());
-  const std::string filecontent = response->data.str();
-  if (response->http_code != 200) {
+  path::RefValueMap captures;
+  const path::Path ref_path =
+      path::utils::BindRefs(in_path, path::utils::ReferenceBinder);
+  const path::Path value_path =
+      path::utils::BindRefs(in_path, path::utils::ValueBinder);
+
+  const auto it = directory->find(ref_path);
+  if (it == directory->end()) {
     return -ENOENT;
   }
+
+  std::string filecontent = "";
+  LOG(INFO) << it->first.filename();
+  if (ends_with(it->first.filename().string(), "metadata.json")) {
+    const Json::Value *v = it->second.data<Json::Value>();
+    Json::FastWriter fw;
+    filecontent = fw.write(*v);
+  } else {
+    path::Path filestem = it->first.filename().stem();
+    std::string operation_str =
+        (filestem.has_extension()) ? filestem.extension() : filestem.stem();
+    const auto find_it = rest::constants::operations_map().find(operation_str);
+    if (find_it == rest::constants::operations_map().end()) {
+      LOG(INFO) << "Unexpected file name";
+      return -ENOENT;
+    }
+
+    http::Request request(find_it->second);
+    auto response = request.fetch(directory->directory_url_prefix() +
+                                  value_path.parent_path().string());
+    if (response->http_code != 200) {
+      return -ENOENT;
+    }
+    filecontent = response->data.str();
+  }
   size_t len = filecontent.length();
+
   if (offset >= len) {
     return 0;
   }
@@ -55,7 +89,7 @@ int api_read(const char *in_path, char *buf, size_t size, off_t offset,
   }
 
   memcpy(buf, filecontent.c_str() + offset, size);
-  return -ENOENT;
+  return size;
 }
 
 int api_write(const char *path, const char *buf, size_t size, off_t offset,
@@ -75,22 +109,17 @@ int api_readdir(const char *path_str, void *buf, fuse_fill_dir_t filler,
                 enum fuse_readdir_flags flag) {
   LOG(INFO) << "api_readdir " << path_str << ", " << filler << ", " << offset
             << ", " << fi;
-  const path::Path path(path::utils::CanonicalizeRefs(path_str));
+  const path::Path path(path::utils::PathToRefValueMap(path_str));
   const path::Path &filename(path.filename());
 
   std::unordered_set<std::string> already_reported;
 
-  // Substituia por uma utilizacao mais eficiente de prefix range. Nao
-  // precisamos descer a arvore toda. Precisamos apenas dos filhos imediatos.
   auto it = directory->find(path);
   if (it == directory->end()) {
-    LOG(INFO) << "Not found";
     return -ENOENT;
   }
-  LOG(INFO) << it->second;
 
   for (auto child : it->second.children()) {
-    LOG(INFO) << *child;
     if (filler(buf, child->path().filename().c_str(), &(child->stat()), 0,
                (fuse_fill_dir_flags)0)) {
       return -1;
@@ -130,8 +159,6 @@ void *api_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
   const std::string &api_addr = getenv("API_ADDR");
   directory =
       openapi::NewDirectoryFromJsonValue(api_addr, std::move(json_data));
-
-  LOG(INFO) << "Loaded dir:" << *directory;
 
   return 0;
 }

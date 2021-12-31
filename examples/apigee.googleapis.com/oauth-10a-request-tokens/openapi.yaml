@@ -1,0 +1,136 @@
+---
+openapi: "3.0.0"
+servers:
+- url: "https://api.enterprise.apigee.com/v1"
+info:
+  title: "OAuth 1.0a Request Tokens API"
+  description: "Description."
+  version: "1.0"
+security:
+- Basic: []
+- OAuth: []
+paths:
+  /organizations/{org_name}/oauth1/requesttokens:
+    get:
+      tags:
+      - "OAuth 1.0a"
+      summary: "List OAuth 1.0a request tokens"
+      description: "Lists the OAuth 1.0a request tokens in an organization."
+      operationId: "listOAuth10aRequestTokens"
+      parameters:
+      - $ref: "#/components/parameters/org_name"
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad request"
+  /organizations/{org_name}/oauth1/requesttokens/{request_token}:
+    delete:
+      tags:
+      - "OAuth 1.0a"
+      summary: "Delete OAuth 1.0a Request Token"
+      description: "Deletes the specified OAuth 1.0a request token."
+      operationId: "deleteOAuth10aRequestToken"
+      parameters:
+      - $ref: "#/components/parameters/org_name"
+      - $ref: "#/components/parameters/request_token"
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad request"
+    post:
+      tags:
+      - "OAuth 1.0a"
+      summary: "Approve, revoke, or update OAuth 1.0a request token"
+      description: "Enables you to perform one of the following tasks:\n\n* Approve\
+        \ or revoke the specified request token by setting the `action` query parameter\
+        \ to `approve` or `revoke`.\n* Update the specified request token with a new\
+        \ profile. With Apigee Edge for Public Cloud, the attribute limit is 18."
+      operationId: "approveRevokeUpdateOAuth10aRequestToken"
+      parameters:
+      - $ref: "#/components/parameters/org_name"
+      - $ref: "#/components/parameters/request_token"
+      - $ref: "#/components/parameters/request_token"
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad request"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessTokenAttributes"
+    get:
+      tags:
+      - "OAuth 1.0a"
+      summary: "Get OAuth 1.0a request token"
+      description: "Gets details for the specified OAuth 1.0a request token."
+      operationId: "getOAuth10aRequestToken"
+      parameters:
+      - $ref: "#/components/parameters/org_name"
+      - $ref: "#/components/parameters/request_token"
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad request"
+components:
+  securitySchemes:
+    Basic:
+      type: "http"
+      scheme: "basic"
+      description: "Multi-factor authentication is not supported."
+    OAuth:
+      type: "apiKey"
+      name: "Authorization"
+      in: "header"
+      description: "For OAuth, enter the following in the Key field: Bearer %your-token%\
+        \ (see https://docs.apigee.com/api-platform/system-administration/using-oauth2#get-the-tokens)"
+  parameters:
+    org_name:
+      in: "path"
+      name: "org_name"
+      required: true
+      schema:
+        type: "string"
+      description: "Organization name."
+    request_token:
+      in: "path"
+      name: "request_token"
+      required: true
+      schema:
+        type: "string"
+      description: "Organization name."
+    action:
+      in: "query"
+      name: "action"
+      required: false
+      schema:
+        type: "string"
+      description: "Set to `approve` or `revoke`."
+  schemas:
+    AccessTokenAttributes:
+      description: "Update access token attributes."
+      type: "object"
+      properties:
+        attributes:
+          description: "Attributes used to extend the default profile."
+          type: "array"
+          items:
+            $ref: "#/components/schemas/NameValue"
+        scope:
+          description: "List of scopes associated with the access token, validated\
+            \ at runtime against scopes defined in API product."
+          type: "string"
+    NameValue:
+      description: "Name/value attribute pairs."
+      type: "object"
+      properties:
+        name:
+          description: "Name of attribute."
+          type: "string"
+        value:
+          description: "Value of attribute."
+          type: "string"

@@ -2,7 +2,6 @@
 #define PATHS_H
 
 #include "logger.h"
-#include "rest.h"
 
 #include <filesystem>
 #include <functional>
@@ -19,9 +18,11 @@ using Path = std::filesystem::path;
 // but it could be implemented as the position. The typedefs below are supposed
 // to capture that difference.
 using Reference = std::string;
+using Value = std::string;
 using Ref = Reference;
 using ParamName = std::string;
 using ReferenceSet = std::unordered_set<path::Ref>;
+using RefValueMap = std::unordered_map<path::Ref, Value>;
 using RefSet = ReferenceSet;
 
 } // namespace path
@@ -35,21 +36,25 @@ template <> struct hash<path::Path> {
 } // namespace std
 
 namespace path {
+
 class Node final {
 public:
   Node(const Node &node)
       : path_(node.path_), stat_(node.stat_), children_(node.children_),
-        metadata_(node.metadata_) {}
-  Node(const Path& path, const struct stat &stat, const void *metadata)
-      : path_(path), stat_(stat), metadata_(metadata) {}
+        data_(node.data_), data_size_(node.data_size_) {}
+  Node(const Path &path, const struct stat &stat, const void *data,
+       const size_t data_size)
+      : path_(path), stat_(stat), data_(data), data_size_(data_size) {}
 
   const Path &path() const { return path_; }
 
   const struct stat &stat() const { return stat_; }
 
-  template <typename Metadata> const Metadata *metadata() const {
-    return metadata_;
+  template <typename Data> const Data *data() const {
+    return static_cast<const Data *>(data_);
   }
+
+  const size_t data_size() { return data_size_; }
 
   std::vector<const path::Node *> *mutable_children() { return &children_; }
 
@@ -58,12 +63,22 @@ public:
 private:
   const Path path_;
   const struct stat stat_;
-  const void *metadata_;
+  const void *data_;
+  const size_t data_size_;
   std::vector<const path::Node *> children_;
 };
 
-path::Node FileNode(const path::Path &key, const Json::Value *json);
-path::Node DirNode(const path::Path &key, const Json::Value *json);
+typedef __mode_t NodeMode;
+path::Node SimpleFileNode(const path::Path &path, const void *data,
+                          const size_t data_size,
+                          const std::initializer_list<NodeMode> &modes);
+template <typename Data>
+path::Node SimpleFileNode(const path::Path &path, const Data *data,
+                          const std::initializer_list<NodeMode> &modes) {
+  return SimpleFileNode(path, data, sizeof *data, modes);
+}
+
+path::Node DirNode(const path::Path &key, const void *data);
 
 namespace utils {
 const std::vector<path::Path> all_prefixes(const path::Path &path);
@@ -77,7 +92,20 @@ static const Ref FailOnBinding(const Ref &ref, const std::string &value) {
 };
 
 bool IsReference(const path::Path &path_part);
-const path::Path CanonicalizeRefs(const path::Path &path);
+bool HasReference(const path::Path &path_part);
+const path::Path ValuedPath(const path::Path &pat);
+
+const Binder ValueBinder =
+    [](const Reference &ref, const Value &value) -> const Reference {
+  return value;
+};
+
+const Binder ReferenceBinder =
+    [](const Reference &ref, const Value &value) -> const Reference {
+  return "{" + ref + "}";
+};
+const path::Path PathToRefValueMap(const path::Path &pat,
+                                  RefValueMap *ref_value_map = nullptr);
 const RefSet RefSetFromPath(const path::Path &path);
 const path::Path BindRefs(const path::Path &path, Binder binder);
 

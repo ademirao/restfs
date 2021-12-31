@@ -1,0 +1,3039 @@
+{
+  "components": {
+    "schemas": {
+      "FailedDependencyError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "example": "FailedDependency",
+            "type": "string",
+            "description": "Código utilizado para indicar um erro ao acionar sistemas de terceiros"
+          },
+          "message": {
+            "example": "Ocorreu um erro em um sistema terceiro",
+            "type": "string",
+            "description": "Mensagem descrevendo o erro encontrado"
+          },
+          "timestamp": {
+            "example": "2021-12-09T15:56:38.916Z",
+            "type": "string",
+            "description": "Data e hora em que ocorreu o erro"
+          },
+          "request": {
+            "example": "541f8cab-96ee-49f8-84fe-ffdc2dc33632",
+            "type": "string",
+            "description": "Identificador da requisição (uso interno para registro e acompanhamento)"
+          }
+        }
+      },
+      "OrderCaptureSoidRequest": {
+        "properties": {
+          "soid": {
+            "example": "a608ce72-1ede-402a-8c98-cc03f1591a01",
+            "type": "string",
+            "description": "Identificador interno da operação"
+          }
+        }
+      },
+      "OrderMinimal": {
+        "type": "object",
+        "description": "Dados da solicitação de pagamento de venda com cartão de crédito",
+        "properties": {
+          "status": {
+            "maxLength": 32,
+            "example": "captured",
+            "type": "string",
+            "enum": [
+              "received",
+              "approved",
+              "authorized",
+              "partially_authorized",
+              "refused",
+              "denied",
+              "partially_captured",
+              "captured",
+              "not_captured",
+              "canceled"
+            ],
+            "description": "Status do pagamento"
+          },
+          "origin": {
+            "maxLength": 32,
+            "example": "sale",
+            "type": "string",
+            "enum": [
+              "sale"
+            ],
+            "description": "Origem da operação"
+          },
+          "amount": {
+            "example": 3000,
+            "type": "number",
+            "description": "Valor total da operação. (É utilizado o valor inteiro sem separador de casa decimal. Ex: R$ 1000,50 será representado como 100050)"
+          },
+          "transactions": {
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "refunded_amount": {
+                  "example": 3000,
+                  "type": "number",
+                  "description": "Valor estornado na transação (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 será representado como 100050)"
+                },
+                "status": {
+                  "maxLength": 32,
+                  "example": "captured",
+                  "type": "string",
+                  "enum": [
+                    "received",
+                    "authorized",
+                    "partially_authorized",
+                    "refused",
+                    "waiting_payment",
+                    "not_captured",
+                    "captured",
+                    "canceled"
+                  ],
+                  "description": "Status da transação"
+                },
+                "holder_document_number": {
+                  "maxLength": 14,
+                  "example": "12345678901",
+                  "type": "string",
+                  "description": "CPF/CNPJ do cliente da operação"
+                },
+                "amount": {
+                  "example": 3000,
+                  "type": "number",
+                  "description": "Valor da transação (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 será representado como 100050)"
+                },
+                "original_authorization_code": {
+                  "maxLength": 36,
+                  "example": "566457",
+                  "type": "string",
+                  "description": "Código de autorização original da adquirente"
+                },
+                "acceptance_datetime": {
+                  "maxLength": 50,
+                  "example": "2021-01-15T16:30:14.701Z",
+                  "type": "string",
+                  "description": "Data hora de início de transação."
+                },
+                "soft_description": {
+                  "maxLength": 140,
+                  "type": "string",
+                  "description": "Mensagem complementar da transação"
+                },
+                "issuer_transaction_id": {
+                  "maxLength": 36,
+                  "example": "1119013201033",
+                  "type": "string",
+                  "description": "TID do emissor da transação"
+                },
+                "stid": {
+                  "maxLength": 36,
+                  "example": "a94c93d6-82db-4842-97f5-a938f7f6b998",
+                  "type": "string",
+                  "description": "Identificador interno da transação para o Sésamo"
+                },
+                "payment_method": {
+                  "example": "credit_card",
+                  "type": "string",
+                  "description": "Forma de pagamento"
+                },
+                "captured_at": {
+                  "maxLength": 50,
+                  "example": "2021-01-15T16:30:14.701Z",
+                  "type": "string",
+                  "description": "Data e hora de captura da transação"
+                },
+                "acquirer": {
+                  "maxLength": 32,
+                  "example": "adyen",
+                  "type": "string",
+                  "enum": [
+                    "cielo",
+                    "adyen"
+                  ],
+                  "description": "Adquirente que processou a transação"
+                },
+                "refunds": {
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "srid": {
+                        "maxLength": 36,
+                        "example": "969ca88a-dbbb-4a14-862e-cb62a2f9438a",
+                        "type": "string",
+                        "description": "Identificador do estorno para o Sésamo"
+                      },
+                      "status": {
+                        "maxLength": 32,
+                        "example": "captured",
+                        "type": "string",
+                        "enum": [
+                          "received",
+                          "refused",
+                          "captured",
+                          "not_captured"
+                        ],
+                        "description": "Status do estorno"
+                      },
+                      "amount": {
+                        "example": 3000,
+                        "type": "number",
+                        "description": "Valor da transação (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser representado como 100050)"
+                      },
+                      "acceptance_datetime": {
+                        "maxLength": 50,
+                        "example": "2021-01-15T16:30:14.701Z",
+                        "type": "string",
+                        "description": "Data hora de início de transação."
+                      },
+                      "soft_description": {
+                        "maxLength": 140,
+                        "example": "Devolvendo mouse sem fio",
+                        "type": "string",
+                        "description": "Mensagem complementar para o estorno"
+                      },
+                      "captured_at": {
+                        "maxLength": 50,
+                        "example": "2021-01-15T17:00:14.701Z",
+                        "type": "string",
+                        "description": "Data e hora de captura do estorno"
+                      },
+                      "authorized_at": {
+                        "maxLength": 50,
+                        "example": "2021-01-15T16:59:27.485Z",
+                        "type": "string",
+                        "description": "Data e hora da autorização do estorno"
+                      },
+                      "nsu": {
+                        "maxLength": 36,
+                        "example": "3201033",
+                        "type": "string",
+                        "description": "NSU da adquirente"
+                      },
+                      "status_message_code": {
+                        "maxLength": 120,
+                        "example": "transaction_approved",
+                        "type": "string",
+                        "description": "Código da mensagem relacionada ao status que a transação se encontra"
+                      },
+                      "metadata": {
+                        "$ref": "#/components/schemas/MetadataObject"
+                      },
+                      "status_message": {
+                        "example": "Transaction has been updated successfully!",
+                        "type": "string",
+                        "description": "Mensagem relacionada ao status que a transação se encontra"
+                      },
+                      "reference_key": {
+                        "maxLength": 36,
+                        "example": "5c3dca67-9a11-5bb6-8d50-04ab4afc63d0",
+                        "type": "string",
+                        "description": "Chave única de identificação para cada estorno fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+                      }
+                    }
+                  },
+                  "type": "array",
+                  "description": "Dados do estorno caso a transação tenha sido estornada (status [refunded])"
+                },
+                "authorized_at": {
+                  "maxLength": 50,
+                  "example": "2021-01-15T16:35:14.701Z",
+                  "type": "string",
+                  "description": "Data e hora da autorizacao da transação"
+                },
+                "installments": {
+                  "example": 1,
+                  "type": "number",
+                  "description": "Número de parcelas da operação"
+                },
+                "holder_name": {
+                  "maxLength": 100,
+                  "example": "João Pedro da Silva",
+                  "type": "string",
+                  "description": "Nome do cliente da operação"
+                },
+                "card_brand": {
+                  "maxLength": 36,
+                  "example": "visa",
+                  "type": "string",
+                  "description": "Bandeira do cartão utilizado"
+                },
+                "nsu": {
+                  "maxLength": 36,
+                  "example": "3201033",
+                  "type": "string",
+                  "description": "NSU da adquirente"
+                },
+                "card_number": {
+                  "maxLength": 16,
+                  "example": "1234********4321",
+                  "type": "string",
+                  "description": "Número ofuscado do cartão"
+                },
+                "tid": {
+                  "maxLength": 36,
+                  "example": "1119013201033",
+                  "type": "string",
+                  "description": "TID da adquirente"
+                },
+                "status_message_code": {
+                  "maxLength": 120,
+                  "example": null,
+                  "type": "string",
+                  "description": "Código da mensagem relacionada ao status que a transação se encontra",
+                  "nullable": true
+                },
+                "created_at": {
+                  "maxLength": 50,
+                  "example": "2021-01-15T16:30:14.701Z",
+                  "type": "string",
+                  "description": "Data e hora da criação do pagamento."
+                },
+                "metadata": {
+                  "$ref": "#/components/schemas/MetadataObject"
+                },
+                "status_message": {
+                  "example": null,
+                  "type": "string",
+                  "description": "Mensagem relacionada ao status que a transação se encontra",
+                  "nullable": true
+                },
+                "reference_key": {
+                  "maxLength": 36,
+                  "example": "d0baa5e3-2e12-4c41-a3ce-293674dde36b",
+                  "type": "string",
+                  "description": "Chave única de identificação para cada transação fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+                },
+                "authorization_code": {
+                  "maxLength": 36,
+                  "example": "566457",
+                  "type": "string",
+                  "description": "Código de autorização da adquirente"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "split_rules": {
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "example": 10050,
+                  "type": "number",
+                  "description": "Valor que o recebedor irá receber na transação. (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser representado como 100050)"
+                },
+                "charge_process_fee": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+                },
+                "force_unblock": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Define se os recebíveis vinculados a essa regra devem ser criados desbloqueados."
+                },
+                "mdr": {
+                  "example": 100,
+                  "type": "number",
+                  "description": "Valor da taxa do adquirente. (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1,00 deve ser enviado como 100)"
+                },
+                "ssplid": {
+                  "maxLength": 36,
+                  "example": "8cc8bc71-f9f9-41cb-8cee-b09557514b09",
+                  "type": "string",
+                  "description": "Identificador Sésamo para a regra."
+                },
+                "recipient_id": {
+                  "maxLength": 36,
+                  "example": "607c7687-757b-4aa5-ac55-463c00cb57c5",
+                  "type": "string",
+                  "description": "Identificador do recebedor."
+                },
+                "metadata": {
+                  "$ref": "#/components/schemas/MetadataObject"
+                },
+                "reference_key": {
+                  "maxLength": 36,
+                  "example": "4008b8bf-b58e-4abd-b5de-348fc772114e",
+                  "type": "string",
+                  "description": "Chave única de identificação para cada regra de divisão fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+                },
+                "chargeback_liability": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "channel": {
+            "maxLength": 64,
+            "example": "channel-teste",
+            "type": "string",
+            "description": "Canal de origem da operação"
+          },
+          "receivable_at": {
+            "maxLength": 50,
+            "example": "2021-12-07T12:40:36.701Z",
+            "type": "string",
+            "description": "Data hora da geração de agenda de recebíveis"
+          },
+          "risk_analyses_status": {
+            "maxLength": 32,
+            "example": "approved",
+            "type": "string",
+            "enum": [
+              "approved",
+              "pending",
+              "declined"
+            ],
+            "description": "Status da análise de risco"
+          },
+          "soid": {
+            "maxLength": 36,
+            "example": "34e27158-ae73-400d-875d-d3e3f989516b",
+            "type": "string",
+            "description": "Identificador do pagamento interno utilizado pelo Gateway"
+          },
+          "status_message_code": {
+            "maxLength": 120,
+            "example": null,
+            "type": "string",
+            "description": "Código da mensagem relacionada ao status que o pedido se encontra",
+            "nullable": true
+          },
+          "created_at": {
+            "maxLength": 50,
+            "example": "2021-12-07T12:30:14.701Z",
+            "type": "string",
+            "description": "Data e hora em da criação do pagamento"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MetadataObject"
+          },
+          "callback_url": {
+            "maxLength": 256,
+            "example": "http://localhost:8889/callback",
+            "type": "string",
+            "description": "Endereço callback por onde o cliente será notificado conforme o pagamento passar pelas etapas de processamento"
+          },
+          "status_message": {
+            "example": null,
+            "type": "string",
+            "description": "Mensagem relacionada ao status que o pedido se encontra",
+            "nullable": true
+          },
+          "reference_key": {
+            "maxLength": 36,
+            "example": "fe851263-c3b1-4943-84f8-fb92ca0bd513",
+            "type": "string",
+            "description": "Chave única de identificação para cada pagamento fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+          }
+        }
+      },
+      "MetadataObject": {
+        "example": "{ \"additional_info\" : \"test\" }",
+        "additionalProperties": true,
+        "description": "Quaisquer campos necessários que não estão definidos no contrato",
+        "nullable": true
+      },
+      "RecipientMinimal": {
+        "type": "object",
+        "properties": {
+          "postal_code": {
+            "maxLength": 8,
+            "example": "13560610",
+            "type": "string",
+            "description": "CEP do endereço do recebedor (somente números)"
+          },
+          "state": {
+            "maxLength": 2,
+            "example": "SP",
+            "minLength": 2,
+            "type": "string",
+            "description": "Código do estado do recebedor"
+          },
+          "country": {
+            "maxLength": 2,
+            "example": "BR",
+            "default": "BR",
+            "type": "string",
+            "description": "Nome do país onde se encontra o recebedor"
+          },
+          "channel": {
+            "maxLength": 64,
+            "example": "Site",
+            "type": "string",
+            "description": "Canal pelo qual o recebedor foi registrado."
+          },
+          "document_number": {
+            "maxLength": 14,
+            "example": "12345678901",
+            "type": "string",
+            "description": "CNPJ do recebedor (somente números)"
+          },
+          "street": {
+            "maxLength": 80,
+            "example": "Rua Jose Bonifacio, 565",
+            "type": "string",
+            "description": "Endereço do recebedor composto por nome da rua e número"
+          },
+          "recipient_id": {
+            "maxLength": 36,
+            "example": "8051f97b-65d9-4970-87ec-02260db5a390",
+            "type": "string",
+            "description": "Identificador único do recebedor do pagamento"
+          },
+          "name": {
+            "maxLength": 64,
+            "example": "Teste Sub-Merchant",
+            "type": "string",
+            "description": "Nome do sub-merchant"
+          },
+          "city": {
+            "maxLength": 30,
+            "example": "São Paulo",
+            "type": "string",
+            "description": "Nome da cidade do recebedor"
+          },
+          "srecipient_id": {
+            "maxLength": 36,
+            "example": "8cdc2900-68a6-4f17-a4f1-87cf076e0327",
+            "type": "string",
+            "description": "Identificador interno do recebedor no Gateway Sésamo"
+          },
+          "reference_key": {
+            "maxLength": 36,
+            "example": "0f35a03c-7a5a-431e-b120-3f38d73c1aa8",
+            "type": "string",
+            "description": "Chave única de identificação do recebedor fornecido pelo solicitante da operação (atua como identificador único entre o Gateway e o solicitante)"
+          }
+        }
+      },
+      "OrganizationMinimal": {
+        "type": "object",
+        "properties": {
+          "public_id": {
+            "maxLength": 36,
+            "example": "8cdc2900-68a6-4f17-a4f1-87cf076e0327",
+            "type": "string",
+            "description": "Identificador único da Organização"
+          },
+          "legal_name": {
+            "maxLength": 64,
+            "example": "Luizalabs Computacao e Sistemas de Informacao LTDA.",
+            "type": "string",
+            "description": "Razão Social da Organização"
+          },
+          "document_number": {
+            "maxLength": 14,
+            "example": "07623088000228",
+            "type": "string",
+            "description": "CNPJ da Organização / CPF do responsável pela Organização (somente números)"
+          },
+          "reference_key": {
+            "maxLength": 32,
+            "example": "0e0077511c2b489ebb12e6ddc1f4044a",
+            "type": "string",
+            "description": "Chave única de identificação da nova organização utilizado pelo solicitante da criação (atua como identificador único entre o Gateway e o solicitante)"
+          },
+          "fantasy_name": {
+            "maxLength": 120,
+            "example": "SOFTBOX",
+            "type": "string",
+            "description": "Nome Fantasia da Organização"
+          }
+        }
+      },
+      "OrderCancelSoidRequest": {
+        "properties": {
+          "soid": {
+            "example": "a608ce72-1ede-402a-8c98-cc03f1591a01",
+            "type": "string",
+            "description": "Identificador interno da operação"
+          }
+        }
+      },
+      "OrganizationChannelMinimal": {
+        "type": "object",
+        "properties": {
+          "disable_risk_analyses_fraud": {
+            "example": true,
+            "type": "boolean",
+            "description": "Flag para desabilitar a validação pelo anti-fraud"
+          },
+          "integrate_receivable": {
+            "example": true,
+            "type": "boolean",
+            "description": "Flag para ativar a geração de agenda de recebíveis para as transações pertencentes ao canal."
+          },
+          "api_key": {
+            "maxLength": 36,
+            "example": "8cdc290068a64f17a4f187cf076e0327",
+            "type": "string",
+            "description": "Chave utiliza para comunicação com os serviços do Gateway Sésamo"
+          },
+          "public_id": {
+            "maxLength": 36,
+            "example": "a107e18b-ce29-40f7-a6f7-6bd0efe28850",
+            "type": "string",
+            "description": "Identificador único do canal"
+          },
+          "active": {
+            "example": true,
+            "type": "boolean",
+            "description": "Indicador de canal ativo"
+          },
+          "name": {
+            "maxLength": 64,
+            "example": "Checkout APP",
+            "type": "string",
+            "description": "Nome descritivo do canal"
+          },
+          "reference_key": {
+            "maxLength": 32,
+            "example": "8dbdb8774ab5478a859a0828e8eca621",
+            "type": "string",
+            "description": "Chave única de identificação do canal fornecido pelo solicitante da operação (atua como identificador único entre o Gateway e o solicitante)"
+          }
+        }
+      },
+      "BadRequestError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "example": -1000,
+            "type": "number",
+            "description": "Código utilizado para indicar um erro de formação do payload utilizado na request"
+          },
+          "message": {
+            "example": "body with syntax error.",
+            "type": "string",
+            "description": "Mensagem descrevendo o erro encontrado"
+          },
+          "timestamp": {
+            "example": "2021-12-09T15:56:38.916Z",
+            "type": "string",
+            "description": "Data e hora em que ocorreu o erro"
+          },
+          "request": {
+            "example": "541f8cab-96ee-49f8-84fe-ffdc2dc33632",
+            "type": "string",
+            "description": "Identificador da requisição (uso interno para registro e acompanhamento)"
+          }
+        }
+      },
+      "ResourceNotFoundError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "example": "ResourceNotFound",
+            "type": "string",
+            "description": "Código utilizado para sinalizar que o identificador de pagamento fornecido não foi encontrado no Gateway"
+          },
+          "message": {
+            "example": "Operação [8eab7d90-500b-4352-92f2-e46c32e27d7f] não encontrada!",
+            "type": "string",
+            "description": "Mensagem descrevendo o erro encontrado"
+          },
+          "timestamp": {
+            "example": "2021-12-09T15:56:38.916Z",
+            "type": "string",
+            "description": "Data e hora em que ocorreu o erro"
+          },
+          "request": {
+            "example": "541f8cab-96ee-49f8-84fe-ffdc2dc33632",
+            "type": "string",
+            "description": "Identificador da requisição (uso interno para registro e acompanhamento)"
+          }
+        }
+      },
+      "OrderRefundRequest": {
+        "required": [
+          "amount",
+          "reference_key",
+          "transactions"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "example": 100050,
+            "type": "number",
+            "description": "Valor total da operação. (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser enviado como 100050)"
+          },
+          "transactions": {
+            "uniqueItems": true,
+            "items": {
+              "required": [
+                "reference_key",
+                "amount",
+                "stid"
+              ],
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "example": 100050,
+                  "type": "number",
+                  "description": "Valor da transação (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser enviado como 100050)"
+                },
+                "acceptance_datetime": {
+                  "maxLength": 50,
+                  "example": "2021-01-15T16:30:14.701Z",
+                  "type": "string",
+                  "description": "Data hora de início de transação."
+                },
+                "soft_description": {
+                  "maxLength": 140,
+                  "example": "Devolvendo mouse para notebook",
+                  "type": "string",
+                  "description": "Mensagem complementar para o estorno"
+                },
+                "stid": {
+                  "maxLength": 36,
+                  "example": "ab0e637e-87f5-44e6-ba7b-2ba51f6dda43",
+                  "type": "string",
+                  "description": "Identificador da transação no Sésamo"
+                },
+                "nsu": {
+                  "maxLength": 36,
+                  "example": "3201033",
+                  "type": "string",
+                  "description": "NSU da adquirente"
+                },
+                "metadata": {
+                  "$ref": "#/components/schemas/MetadataObject"
+                },
+                "reference_key": {
+                  "maxLength": 36,
+                  "example": "d2549c92-596d-4f62-8d7a-57dcbdfaa176",
+                  "type": "string",
+                  "description": "Chave única de identificação para transação que compõe a operação de estorno fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "split_rules": {
+            "uniqueItems": true,
+            "items": {
+              "required": [
+                "amount"
+              ],
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "example": 10050,
+                  "type": "number",
+                  "description": "Valor que o recebedor irá receber na transação. (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser enviado como 100050)"
+                },
+                "recipient_reference_key": {
+                  "maxLength": 36,
+                  "example": "5f9c9b4f-e179-4fad-ab91-59066eccd94c",
+                  "type": "string",
+                  "description": "Identificador do recebedor. (Quando fornecido [recipient_reference_key] não é necessário preencher [recipient_id])"
+                },
+                "charge_process_fee": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+                },
+                "force_unblock": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Define se os recebíveis vinculados a essa regra devem ser criados desbloqueados."
+                },
+                "mdr": {
+                  "example": 100,
+                  "type": "number",
+                  "description": "Valor da taxa do adquirente. (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1,00 deve ser enviado como 100)"
+                },
+                "recipient_id": {
+                  "maxLength": 36,
+                  "example": "607c7687-757b-4aa5-ac55-463c00cb57c5",
+                  "type": "string",
+                  "description": "Identificador do recebedor. (Quando fornecido [recipient_id] não é necessário preencher [recipient_reference_key])"
+                },
+                "metadata": {
+                  "$ref": "#/components/schemas/MetadataObject"
+                },
+                "reference_key": {
+                  "maxLength": 36,
+                  "example": "412a9adb-6d8a-4bda-938c-910610d9b6a3",
+                  "type": "string",
+                  "description": "Chave única de identificação para regra de divisão fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)",
+                  "nullable": true
+                },
+                "chargeback_liability": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "soid": {
+            "maxLength": 36,
+            "example": "4008b8bf-b58e-4abd-b5de-348fc772114e",
+            "type": "string",
+            "description": "Identificador do pedido no Sésamo"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MetadataObject"
+          },
+          "callback_url": {
+            "maxLength": 256,
+            "example": "http://localhost:8889/callback",
+            "type": "string",
+            "description": "Endereço callback para notificar solicitante da situação do estorno."
+          },
+          "reference_key": {
+            "maxLength": 36,
+            "example": "5ca868fc-cebc-490c-b688-d955a1786436",
+            "type": "string",
+            "description": "Chave única de identificação para operação de estorno fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+          }
+        }
+      },
+      "UnauthorizedError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "example": "Unauthorized",
+            "type": "string",
+            "description": "Código utilizado para indicar que o requerente não possui autorização para utilizar a rota"
+          },
+          "message": {
+            "example": "Permissão negada",
+            "type": "string",
+            "description": "Mensagem descrevendo o erro encontrado"
+          },
+          "timestamp": {
+            "example": "2021-12-09T15:56:38.916Z",
+            "type": "string",
+            "description": "Data e hora em que ocorreu o erro"
+          },
+          "request": {
+            "example": "541f8cab-96ee-49f8-84fe-ffdc2dc33632",
+            "type": "string",
+            "description": "Identificador da requisição (uso interno para registro e acompanhamento)"
+          }
+        }
+      },
+      "OrganizationRequest": {
+        "required": [
+          "document_number",
+          "reference_key",
+          "legal_name",
+          "fantasy_name"
+        ],
+        "type": "object",
+        "properties": {
+          "legal_name": {
+            "maxLength": 64,
+            "example": " Luizalabs Computacao e Sistemas de Informacao LTDA.",
+            "type": "string",
+            "description": "Razão Social da Organização"
+          },
+          "document_number": {
+            "maxLength": 14,
+            "example": "07623088000228",
+            "type": "string",
+            "description": "CNPJ da Organização / CPF do responsável pela Organização (somente números)"
+          },
+          "reference_key": {
+            "maxLength": 36,
+            "example": "0e007751-1c2b-489e-bb12-e6ddc1f4044a",
+            "type": "string",
+            "description": "Chave única de identificação para organização fornecida pelo solicitante da criação (atua como identificador único entre o Gateway e o solicitante)"
+          },
+          "fantasy_name": {
+            "maxLength": 120,
+            "example": "SOFTBOX",
+            "type": "string",
+            "description": "Nome Fantasia da Organização"
+          }
+        }
+      },
+      "RecipientRequest": {
+        "required": [
+          "document_number",
+          "reference_key",
+          "recipient_id"
+        ],
+        "type": "object",
+        "properties": {
+          "postal_code": {
+            "maxLength": 8,
+            "example": "13560610",
+            "type": "string",
+            "description": "CEP do endereço do recebedor (somente números)"
+          },
+          "state": {
+            "maxLength": 2,
+            "example": "SP",
+            "minLength": 2,
+            "type": "string",
+            "description": "Código do estado do recebedor"
+          },
+          "country": {
+            "maxLength": 2,
+            "example": "BR",
+            "default": "BR",
+            "type": "string",
+            "description": "Nome do país onde se encontra o recebedor"
+          },
+          "document_number": {
+            "maxLength": 14,
+            "example": "12345678901",
+            "type": "string",
+            "description": "CNPJ do recebedor (somente números)"
+          },
+          "street": {
+            "maxLength": 80,
+            "example": "Rua Jose Bonifacio, 565",
+            "type": "string",
+            "description": "Endereço do recebedor composto por nome da rua e número"
+          },
+          "recipient_id": {
+            "maxLength": 36,
+            "example": "8051f97b-65d9-4970-87ec-02260db5a390",
+            "type": "string",
+            "description": "Identificador único do recebedor do pagamento"
+          },
+          "name": {
+            "maxLength": 64,
+            "example": "Teste Recipient",
+            "type": "string",
+            "description": "Nome do recebedor"
+          },
+          "city": {
+            "maxLength": 30,
+            "example": "São Paulo",
+            "type": "string",
+            "description": "Nome da cidade do recebedor"
+          },
+          "reference_key": {
+            "maxLength": 36,
+            "example": "0f35a03c-7a5a-431e-b120-3f38d73c1aa8",
+            "type": "string",
+            "description": "Chave única de identificação do recebedor fornecido pelo solicitante da operação (atua como identificador único entre o Gateway e o solicitante)"
+          }
+        }
+      },
+      "InternalServerError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "example": "DatabaseError",
+            "type": "string",
+            "description": "Código utilizado para indicar um erro no momento do processamento"
+          },
+          "message": {
+            "example": "Ocorreu um erro ao tentar salvar os dados.",
+            "type": "string",
+            "description": "Mensagem descrevendo o erro encontrado"
+          },
+          "timestamp": {
+            "example": "2021-12-09T15:56:38.916Z",
+            "type": "string",
+            "description": "Data e hora em que ocorreu o erro"
+          },
+          "request": {
+            "example": "541f8cab-96ee-49f8-84fe-ffdc2dc33632",
+            "type": "string",
+            "description": "Identificador da requisição (uso interno para registro e acompanhamento)"
+          }
+        }
+      },
+      "ReferenceKeyParameter": {
+        "properties": {
+          "reference_key": {
+            "example": "4008b8bf-b58e-4abd-b5de-348fc772114e",
+            "type": "string",
+            "description": "Chave única de identificação compartilhada entre o Gateway e o solicitante do processamento"
+          }
+        }
+      },
+      "PaymentOrderRequest": {
+        "required": [
+          "async",
+          "amount",
+          "capture",
+          "reference_key",
+          "ip",
+          "risk_analyses_fraud_flag",
+          "customer",
+          "products",
+          "transactions"
+        ],
+        "type": "object",
+        "description": "Dados necessários para criar uma solicitação de pagamento de uma venda com cartão de crédito",
+        "properties": {
+          "capture": {
+            "example": false,
+            "type": "boolean",
+            "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+          },
+          "amount": {
+            "example": 100,
+            "type": "number",
+            "description": "Valor total da operação (É utilizado o valor inteiro sem separador de casa decimal. Ex: R$ 1000,50 deve ser enviado como 100050)"
+          },
+          "transactions": {
+            "uniqueItems": true,
+            "items": {
+              "required": [
+                "reference_key",
+                "amount",
+                "payment_method"
+              ],
+              "type": "object",
+              "properties": {
+                "card_encrypt": {
+                  "example": "RwqMy5QSqDQtsC5ke//HsipjHsOLTA+8CCp17OQaWp+EXtgG8TtjWzZ/2aeCBEIjjCdJb5w3GkRip04eTGB9NRp5mQW0dDJzywwSoHYNcef/I7XHVMMRs0W81nexcobxFkyuFQ5jPXyJ48JRl0WyFEYf407/ytr0bEl4K4/4i3j6bdcRrmLjslEG2HYLsIZ507OraBBPipy3Mu3a5KA62oP4xVNzDGGGVDgL99kxIyYpdLaLW4BfAMfZ/v6eiE4Y5gJaZAe3BsDd3p/6QIefaLTwronM4L3Yt/yL3SMT6I7unh3ew/SJQubHmTxaLyrSsvXG3C3BIH0gYtAzGcGHtA==",
+                  "type": "string",
+                  "description": "Token com todas as informações do cartão"
+                },
+                "holder_document_number": {
+                  "maxLength": 14,
+                  "example": "12345678901",
+                  "type": "string",
+                  "description": "CPF/CNPJ do cliente da operação"
+                },
+                "amount": {
+                  "example": 100,
+                  "type": "number",
+                  "description": "Valor da transação (É utilizado adicionado o valor inteiro sem separador de casa decimal. Ex: R$ 1000,50 deve ser enviado como 100050)"
+                },
+                "soft_description": {
+                  "maxLength": 140,
+                  "example": "Pagamento novo mouse o notebook",
+                  "type": "string",
+                  "description": "Mensagem complementar da transação"
+                },
+                "payment_method": {
+                  "example": "credit_card",
+                  "type": "string",
+                  "enum": [
+                    "credit_card"
+                  ],
+                  "description": "Forma de pagamento"
+                },
+                "installments": {
+                  "example": 1,
+                  "type": "number",
+                  "description": "Número de parcelas da operação"
+                },
+                "holder_name": {
+                  "maxLength": 100,
+                  "example": "João Pedro da Silva",
+                  "type": "string",
+                  "description": "Nome do cliente da operação"
+                },
+                "card_brand": {
+                  "maxLength": 36,
+                  "example": "visa",
+                  "type": "string",
+                  "enum": [
+                    "amex",
+                    "discover",
+                    "elo",
+                    "hipercard",
+                    "mastercard",
+                    "visa"
+                  ],
+                  "description": "Bandeira do cartão utilizado"
+                },
+                "metadata": {
+                  "$ref": "#/components/schemas/MetadataObject"
+                },
+                "reference_key": {
+                  "maxLength": 36,
+                  "example": "4008b8bf-b58e-4abd-b5de-348fc772114e",
+                  "type": "string",
+                  "description": "Chave única de identificação para transação fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "risk_analyses_fraud_flag": {
+            "example": true,
+            "type": "boolean",
+            "description": "Flag para ativar a verificação pelo anti-fraud"
+          },
+          "split_rules": {
+            "uniqueItems": true,
+            "items": {
+              "required": [
+                "amount"
+              ],
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "example": 10050,
+                  "type": "number",
+                  "description": "Valor que o recebedor irá receber na transação. (É adicionado o valor inteiro sem a vírgula. Ex.: R$ 1000,50 é colocado **100050**)"
+                },
+                "recipient_reference_key": {
+                  "maxLength": 36,
+                  "example": "5f9c9b4f-e179-4fad-ab91-59066eccd94c",
+                  "type": "string",
+                  "description": "Identificador do recebedor. (Quando fornecido [recipient_reference_key] não é necessário preencher [recipient_id])"
+                },
+                "charge_process_fee": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+                },
+                "force_unblock": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Define se os recebíveis vinculados a essa regra devem ser criados desbloqueados."
+                },
+                "mdr": {
+                  "example": 100,
+                  "type": "number",
+                  "description": "Valor da taxa do adquirente. (É adicionado o valor inteiro sem a vírgula. Ex.: R$ 1,00 é colocado **100**)"
+                },
+                "recipient_id": {
+                  "maxLength": 36,
+                  "example": "607c7687-757b-4aa5-ac55-463c00cb57c5",
+                  "type": "string",
+                  "description": "Identificador do recebedor. (Quando fornecido [recipient_id] não é necessário preencher [recipient_reference_key])"
+                },
+                "metadata": {
+                  "$ref": "#/components/schemas/MetadataObject"
+                },
+                "reference_key": {
+                  "maxLength": 36,
+                  "example": "1ea613fd-d77b-4985-a90b-b487c582c9a7",
+                  "type": "string",
+                  "description": "Chave única de identificação para cada regra fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)",
+                  "nullable": true
+                },
+                "chargeback_liability": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "async": {
+            "example": false,
+            "type": "boolean",
+            "description": "Flag de processamento sync/async da operação"
+          },
+          "ip": {
+            "maxLength": 32,
+            "example": "186.201.134.67",
+            "type": "string",
+            "description": "IP de origem da operação"
+          },
+          "customer": {
+            "required": [
+              "name",
+              "document_number",
+              "document_type"
+            ],
+            "type": "object",
+            "description": "Informações do cliente que realizou o pagamento",
+            "properties": {
+              "email": {
+                "maxLength": 200,
+                "example": "joaopedro@email.com",
+                "type": "string",
+                "description": "Email do cliente."
+              },
+              "document_type": {
+                "example": "LEGAL_PERSON",
+                "type": "string",
+                "enum": [
+                  "NATURAL_PERSON",
+                  "LEGAL_PERSON"
+                ],
+                "description": "Tipo de cliente pessoa jurídica/pessoa física."
+              },
+              "born_at": {
+                "example": "1992-12-25",
+                "type": "string",
+                "description": "Data de nascimento do cliente"
+              },
+              "document_number": {
+                "maxLength": 14,
+                "example": "12345678901",
+                "type": "string",
+                "description": "CPF/CNPJ do cliente da operação."
+              },
+              "gender": {
+                "maxLength": 2,
+                "example": "M",
+                "type": "string",
+                "enum": [
+                  "M",
+                  "F"
+                ],
+                "description": "Identidade de gênero do cliente."
+              },
+              "name": {
+                "maxLength": 64,
+                "example": "João Pedro da Silva",
+                "type": "string",
+                "description": "Nome do cliente."
+              },
+              "phone_numbers": {
+                "uniqueItems": true,
+                "items": {
+                  "maxLength": 11,
+                  "example": "16937112002",
+                  "type": "string",
+                  "description": "Telefone com DDD para contato"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "shipping": {
+            "required": [
+              "fee",
+              "delivery_date",
+              "street",
+              "street_number",
+              "neighborhood",
+              "zipcode",
+              "city",
+              "state"
+            ],
+            "type": "object",
+            "description": "Descrições das condições de entrega (Deve ser preenchido quando existir o nó [customer_shipping])",
+            "properties": {
+              "delivery_date": {
+                "example": "2021-12-25",
+                "type": "string",
+                "description": "Data prevista de entrega do pedido."
+              },
+              "state": {
+                "maxLength": 2,
+                "example": "SP",
+                "type": "string",
+                "description": "Abreviatura do estado brasileiro onde se encontra o endereço de entrega."
+              },
+              "fee": {
+                "example": 100,
+                "type": "number",
+                "description": "Valor do frete (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser enviado como 100050)"
+              },
+              "zipcode": {
+                "maxLength": 8,
+                "example": "13560610",
+                "type": "string",
+                "description": "CEP de localização do endereço de entrega (somente números)"
+              },
+              "street": {
+                "maxLength": 80,
+                "example": "Rua Integração",
+                "type": "string",
+                "description": "Rua de localização do endereço de entrega."
+              },
+              "method": {
+                "example": "store_delivery",
+                "type": "string",
+                "enum": [
+                  "store_delivery",
+                  "customer_shipping"
+                ],
+                "description": "Método de entrega. store_delivery: retirada em loja / customer_shipping: entrega convencional"
+              },
+              "company": {
+                "maxLength": 100,
+                "example": "Correios S/A",
+                "type": "string",
+                "description": "Empresa responsável pela entrega."
+              },
+              "city": {
+                "maxLength": 100,
+                "example": "Cidade Exemplo",
+                "type": "string",
+                "description": "Cidade onde está localizado o endereço de entrega."
+              },
+              "street_number": {
+                "maxLength": 10,
+                "example": "74",
+                "type": "string",
+                "description": "Número do endereço de entrega."
+              },
+              "complementary": {
+                "maxLength": 200,
+                "example": "Alguma informação complementar de endereço de entrega.",
+                "type": "string",
+                "description": "Informações complementares de endereço de entrega."
+              },
+              "neighborhood": {
+                "maxLength": 80,
+                "example": "Bairro Faculdade",
+                "type": "string",
+                "description": "Bairro do endereço de entrega."
+              }
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MetadataObject"
+          },
+          "callback_url": {
+            "maxLength": 256,
+            "example": "http://localhost:8889/callback",
+            "type": "string",
+            "description": "Endereço callback por onde o cliente será notificado conforme o pagamento passar pelas etapas de processamento"
+          },
+          "products": {
+            "uniqueItems": true,
+            "items": {
+              "required": [
+                "item_code",
+                "name",
+                "unit_price",
+                "quantity"
+              ],
+              "type": "object",
+              "properties": {
+                "item_code": {
+                  "maxLength": 36,
+                  "example": "ce0de565bj",
+                  "type": "string",
+                  "description": "Código do produto."
+                },
+                "category": {
+                  "maxLength": 32,
+                  "example": "Acessórios de Tecnologia",
+                  "type": "string",
+                  "description": "Categoria do produto."
+                },
+                "quantity": {
+                  "example": 1,
+                  "type": "number",
+                  "description": "Quantidade de produtos presentes no pedido."
+                },
+                "unit_price": {
+                  "example": 100,
+                  "type": "number",
+                  "description": "Valor unitário do produto (É utilizado o valor inteiro sem separador de casa decimal. Ex: R$ 1000,50 deve ser enviado como 100050)"
+                },
+                "name": {
+                  "maxLength": 100,
+                  "example": "Mouse sem fio",
+                  "type": "string",
+                  "description": "Nome do produto."
+                },
+                "sku": {
+                  "maxLength": 36,
+                  "example": "E179485782021010519514A",
+                  "type": "string",
+                  "description": "Código do produto para identificação no estoque."
+                },
+                "description": {
+                  "maxLength": 200,
+                  "example": "Mouse sem fio para notebook",
+                  "type": "string",
+                  "description": "Descrição do produto"
+                }
+              }
+            },
+            "type": "array",
+            "description": "Relação de produtos que compoem o pedido que gerou o pagamento"
+          },
+          "reference_key": {
+            "maxLength": 36,
+            "example": "a4e69bcd-baee-4b59-b679-ae2e528ac548",
+            "type": "string",
+            "description": "Chave única de identificação para cada pagamento fornecida pelo solicitante do processamento (atua como identificador único o entre o Gateway e o solicitante)"
+          },
+          "billing": {
+            "required": [
+              "street",
+              "street_number",
+              "neighborhood",
+              "zipcode",
+              "city",
+              "state"
+            ],
+            "type": "object",
+            "description": "Informações sobre o endereço de cobrança do pagamento",
+            "properties": {
+              "state": {
+                "maxLength": 2,
+                "example": "SP",
+                "type": "string",
+                "description": "Abreviatura do estado brasileiro onde se encontra o endereço de cobrança."
+              },
+              "zipcode": {
+                "maxLength": 8,
+                "example": "13560610",
+                "type": "string",
+                "description": "CEP de localização do endereço de cobrança (somente números)"
+              },
+              "street": {
+                "maxLength": 80,
+                "example": "Rua Integração",
+                "type": "string",
+                "description": "Rua de localização do endereço de cobrança."
+              },
+              "city": {
+                "maxLength": 100,
+                "example": "Cidade Exemplo",
+                "type": "string",
+                "description": "Cidade onde está localizado o endereço de cobrança."
+              },
+              "street_number": {
+                "maxLength": 10,
+                "example": "74",
+                "type": "string",
+                "description": "Número do endereço de cobrança."
+              },
+              "complementary": {
+                "maxLength": 200,
+                "example": "Alguma informação complementar de endereço de cobrança.",
+                "type": "string",
+                "description": "Informações complementares de endereço de cobrança."
+              },
+              "neighborhood": {
+                "maxLength": 80,
+                "example": "Bairro Faculdade",
+                "type": "string",
+                "description": "Bairro do endereço de cobrança."
+              }
+            }
+          },
+          "customer_shipping": {
+            "required": [
+              "name",
+              "document_number",
+              "document_type"
+            ],
+            "type": "object",
+            "description": "Informações do cliente destinatário da venda (Deve ser preenchido quando existir nó [shipping])",
+            "properties": {
+              "email": {
+                "maxLength": 200,
+                "example": "joaopedro@email.com",
+                "type": "string",
+                "description": "Email do cliente."
+              },
+              "document_type": {
+                "example": "LEGAL_PERSON",
+                "type": "string",
+                "enum": [
+                  "NATURAL_PERSON",
+                  "LEGAL_PERSON"
+                ],
+                "description": "Tipo de cliente pessoa jurídica/pessoa física."
+              },
+              "born_at": {
+                "example": "1992-12-25",
+                "type": "string",
+                "description": "Data de nascimento do cliente"
+              },
+              "document_number": {
+                "maxLength": 14,
+                "example": "12345678901",
+                "type": "string",
+                "description": "CPF/CNPJ do cliente da operação."
+              },
+              "gender": {
+                "maxLength": 2,
+                "example": "M",
+                "type": "string",
+                "enum": [
+                  "M",
+                  "F"
+                ],
+                "description": "Identidade de gênero do cliente."
+              },
+              "name": {
+                "maxLength": 64,
+                "example": "João Pedro da Silva",
+                "type": "string",
+                "description": "Nome do cliente."
+              },
+              "phone_numbers": {
+                "uniqueItems": true,
+                "items": {
+                  "maxLength": 11,
+                  "example": "16937112002",
+                  "type": "string",
+                  "description": "Telefone com DDD para contato"
+                },
+                "type": "array"
+              }
+            }
+          }
+        }
+      },
+      "x-source-id": {
+        "type": "string"
+      },
+      "x-tenant-internal-id": {
+        "type": "string"
+      },
+      "OrderRefundMinimal": {
+        "type": "object",
+        "description": "Order Refund Response",
+        "properties": {
+          "status": {
+            "maxLength": 32,
+            "example": "partially_captured",
+            "type": "string",
+            "enum": [
+              "received",
+              "partially_captured",
+              "refused",
+              "captured",
+              "not_captured"
+            ],
+            "description": "Status do estorno"
+          },
+          "amount": {
+            "example": 10050,
+            "type": "number",
+            "description": "Valor total da operação (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser enviado como 100050)"
+          },
+          "transactions": {
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "srid": {
+                  "maxLength": 36,
+                  "example": "b6f404cb-66c6-4d93-977b-3bfdec0c1fdb",
+                  "type": "string",
+                  "description": "Identificador do Sésamo para o refund"
+                },
+                "status": {
+                  "maxLength": 32,
+                  "example": "received",
+                  "type": "string",
+                  "enum": [
+                    "received",
+                    "refused",
+                    "captured",
+                    "not_captured"
+                  ],
+                  "description": "Status da transação"
+                },
+                "amount": {
+                  "example": 10050,
+                  "type": "number",
+                  "description": "Valor da transação (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser enviado como 100050)"
+                },
+                "acceptance_datetime": {
+                  "maxLength": 50,
+                  "example": "2021-12-07T17:50:31.896Z",
+                  "type": "string",
+                  "description": "Data e hora de início de transação."
+                },
+                "soft_description": {
+                  "maxLength": 140,
+                  "example": "Devolvendo mouse para notebook",
+                  "type": "string",
+                  "description": "Mensagem complementar para o estorno"
+                },
+                "captured_at": {
+                  "maxLength": 50,
+                  "example": "2021-12-07T17:50:31.072Z",
+                  "type": "string",
+                  "description": "Data e hora de captura do estorno"
+                },
+                "authorized_at": {
+                  "maxLength": 50,
+                  "example": "2021-12-07T17:50:30.171Z",
+                  "type": "string",
+                  "description": "Data e hora da autorizacao do estorno"
+                },
+                "nsu": {
+                  "maxLength": 36,
+                  "example": "3201033",
+                  "type": "string",
+                  "description": "NSU da adquirente"
+                },
+                "status_message_code": {
+                  "maxLength": 120,
+                  "example": "transaction_approved",
+                  "type": "string",
+                  "description": "Código da mensagem relacionada ao status que a transação se encontra"
+                },
+                "metadata": {
+                  "$ref": "#/components/schemas/MetadataObject"
+                },
+                "status_message": {
+                  "example": "transaction has been updated successfully!",
+                  "type": "string",
+                  "description": "Mensagem relacionada ao status que a transação se encontra"
+                },
+                "reference_key": {
+                  "maxLength": 36,
+                  "example": "b6f404cb-66c6-4d93-977b-3bfdec0c1fdb",
+                  "type": "string",
+                  "description": "Chave única de identificação para transação que compõe a operação de estorno fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "split_rules": {
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "example": 10050,
+                  "type": "number",
+                  "description": "Valor que o recebedor irá receber na transação. (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser enviado como 100050)"
+                },
+                "charge_process_fee": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+                },
+                "force_unblock": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Define se os recebíveis vinculados a essa regra devem ser criados desbloqueados."
+                },
+                "mdr": {
+                  "example": 100,
+                  "type": "number",
+                  "description": "Valor da taxa do adquirente. (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1,00 deve ser enviado como 100)"
+                },
+                "ssplid": {
+                  "maxLength": 36,
+                  "example": "5c51458f-9a87-4e59-8335-3411fc6c647b",
+                  "type": "string",
+                  "description": "Identificador Sésamo para a regra."
+                },
+                "recipient_id": {
+                  "maxLength": 36,
+                  "example": "607c7687-757b-4aa5-ac55-463c00cb57c5",
+                  "type": "string",
+                  "description": "Identificador do recebedor."
+                },
+                "metadata": {
+                  "$ref": "#/components/schemas/MetadataObject"
+                },
+                "reference_key": {
+                  "maxLength": 36,
+                  "example": "5f9c9b4f-e179-4fad-ab91-59066eccd94c",
+                  "type": "string",
+                  "description": "Chave única de identificação para regra de divisão fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+                },
+                "chargeback_liability": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "channel": {
+            "maxLength": 64,
+            "example": "Site",
+            "type": "string",
+            "description": "Canal de origem da operação"
+          },
+          "receivable_at": {
+            "maxLength": 50,
+            "example": "2021-12-07T17:52:36.487Z",
+            "type": "string",
+            "description": "Data e hora da geração de agenda de recebíveis"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MetadataObject"
+          },
+          "callback_url": {
+            "maxLength": 256,
+            "example": "http://localhost:8889/callback",
+            "type": "string",
+            "description": "Endereço callback para notificar situação do estorno."
+          },
+          "reference_key": {
+            "maxLength": 36,
+            "example": "a92b5c6f-c5da-48b4-970a-f0b705107f27",
+            "type": "string",
+            "description": "Chave única de identificação para operação de estorno fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+          },
+          "sorid": {
+            "maxLength": 36,
+            "example": "5cf93727-b5c9-4975-a8f2-7568442bbb91",
+            "type": "string",
+            "description": "Identificador do Sésamo da operação"
+          }
+        }
+      },
+      "ValidateError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "example": "Validation Error",
+            "type": "string",
+            "description": "Código utilizado para indicar um erro de validação em um dos campos fornecidos"
+          },
+          "message": {
+            "example": "Há um ou mais erros nos dados informados, por favor corrija-os e tente novamente.",
+            "type": "string",
+            "description": "Mensagem descrevendo o erro encontrado"
+          },
+          "errors": {
+            "example": {
+              "postal_code": "O campo não deve ter mais de 8 caracteres"
+            },
+            "type": "object",
+            "description": "Detalhes do erro encontrado ao tentar processa requisição"
+          },
+          "timestamp": {
+            "example": "2021-12-09T15:56:38.916Z",
+            "type": "string",
+            "description": "Data e hora em que ocorreu o erro"
+          },
+          "request": {
+            "example": "541f8cab-96ee-49f8-84fe-ffdc2dc33632",
+            "type": "string",
+            "description": "Identificador da requisição (uso interno para registro e acompanhamento)"
+          }
+        }
+      },
+      "OrganizationChannelRequest": {
+        "required": [
+          "reference_key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "disable_risk_analyses_fraud": {
+            "example": true,
+            "type": "boolean",
+            "description": "Flag para desabilitar a validação pelo anti-fraud"
+          },
+          "integrate_receivable": {
+            "example": true,
+            "type": "boolean",
+            "description": "Flag para ativar a geração de agenda de recebíveis para as transações pertencentes ao canal."
+          },
+          "name": {
+            "maxLength": 64,
+            "example": "Checkout APP",
+            "type": "string",
+            "description": "Nome descritivo do canal"
+          },
+          "reference_key": {
+            "maxLength": 36,
+            "example": "8dbdb877-4ab5-478a-859a-0828e8eca621",
+            "type": "string",
+            "description": "Chave única de identificação do canal fornecido pelo solicitante da operação (atua como identificador único entre o Gateway e o solicitante)"
+          }
+        }
+      },
+      "CaptureParcialRequest": {
+        "required": [
+          "amount",
+          "reference_key",
+          "transactions",
+          "split_rules"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "example": 100,
+            "type": "number",
+            "description": "Valor total da operação. (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser enviado como 100050)"
+          },
+          "transactions": {
+            "uniqueItems": true,
+            "items": {
+              "required": [
+                "reference_key",
+                "amount"
+              ],
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "example": 100,
+                  "type": "number",
+                  "description": "Valor da transação (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser enviado como 100050)"
+                },
+                "reference_key": {
+                  "maxLength": 36,
+                  "example": "4008b8bf-b58e-4abd-b5de-348fc772114e",
+                  "type": "string",
+                  "description": "Chave única de identificação para cada transação fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "split_rules": {
+            "uniqueItems": true,
+            "items": {
+              "required": [
+                "amount"
+              ],
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "example": 10050,
+                  "type": "number",
+                  "description": "Valor que o recebedor irá receber na transação. (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1000,50 deve ser enviado como 100050)"
+                },
+                "recipient_reference_key": {
+                  "maxLength": 36,
+                  "example": "0f35a03c-7a5a-431e-b120-3f38d73c1aa8",
+                  "type": "string",
+                  "description": "Identificador do recebedor. (Quando fornecido [recipient_reference_key] não é necessário preencher [recipient_id])"
+                },
+                "charge_process_fee": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+                },
+                "force_unblock": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Define se os recebíveis vinculados a essa regra devem ser criados desbloqueados."
+                },
+                "mdr": {
+                  "example": 100,
+                  "type": "number",
+                  "description": "Valor da taxa do adquirente. (É utilizado o valor inteiro sem o separador de casas decimais. Ex: R$ 1,00 deve ser enviado como 100)"
+                },
+                "recipient_id": {
+                  "maxLength": 36,
+                  "example": "4008b8bf-b58e-4abd-b5de-348fc772114e",
+                  "type": "string",
+                  "description": "Identificador do recebedor."
+                },
+                "metadata": {
+                  "$ref": "#/components/schemas/MetadataObject"
+                },
+                "reference_key": {
+                  "maxLength": 36,
+                  "example": "f42e8e63-9a4a-4b5d-b7d5-25e93f03be58",
+                  "type": "string",
+                  "description": "Chave única de identificação para cada regra de divisão fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)",
+                  "nullable": true
+                },
+                "chargeback_liability": {
+                  "example": true,
+                  "type": "boolean",
+                  "description": "Flag de captura automática caso pedido seja aprovado e autorizado com sucesso"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "reference_key": {
+            "maxLength": 36,
+            "example": "a4e69bcd-baee-4b59-b679-ae2e528ac548",
+            "type": "string",
+            "description": "Chave única de identificação para operação de captura fornecida pelo solicitante do processamento (atua como identificador único entre o Gateway e o solicitante)"
+          }
+        }
+      }
+    }
+  },
+  "openapi": "3.0.1",
+  "externalDocs": {
+    "url": "https://sesamo-api.magazineluiza.com.br/api/docs",
+    "description": "Descubra mais sobre o Midas"
+  },
+  "servers": [
+    {
+      "url": "https://sesamo-api.magazineluiza.com.br/api/"
+    }
+  ],
+  "info": {
+    "contact": {
+      "email": "fabiana.colmanetti@luizalabs.com",
+      "url": "https://github.com/luizalabs",
+      "name": "Tribo Magalu Pagamentos"
+    },
+    "version": "0.0.1",
+    "title": "Midas API - Gateway de Pagamentos",
+    "license": {
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html",
+      "name": "Apache 2.0"
+    },
+    "description": "As rotas descritas neste documento devem ser utilizadas para interagir com o gateway de pagamentos um dos serviços que compoem a plataforma financeira Midas \n\n Com as funcionalidades aqui expostas é possivel: \n\n - Criar uma solicitação de pagamento de uma venda feita com cartão de crédito (modalidade de auto captura ou captura manual)\n - Realizar a captura do pagamento caso seja escolhida a modalidade de captura manual. É possivel capturar o valor completo previamente autorizado (captura total) ou um valor menor do que aquele informado anteriormente (captura parcial)\n - Realizar a consulta do status em que se encontra o pagamento\n - Solicitar o cancelamento do processamento do pagamento (antes de realizar a captura)\n - Solicitar o estorno de um pagamento (completo ou de parte do valor do pagamento original)\n\nAntes de utilizar as funcionalidades descritas acima é necessário cadastrar alguns dados:\n\n - **Organização**: Empresa que deseja consumir os serviços do gateway de pagamentos \n - **Canal**: Meio pelo qual a organização optou por transacionar seus pagamentos, nesse caso, é uma segmentação customizada pela própria empresa para facilitar a identificação e controle de seus recebíveis.\n - **Recebedor**: Entidade que sera a beneficiária do pagamento processado, em outras palavras, aquele que sera o destinatario dos recursos financeiros transacionados.\n\n"
+  },
+  "paths": {
+    "v2/order/refund": {
+      "post": {
+        "summary": "Realiza o estorno de um pagamento previamente processado pelo Gateway",
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "424": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedDependencyError"
+                }
+              }
+            },
+            "description": "Failed Dependency"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderRefundMinimal"
+                }
+              }
+            },
+            "description": "Success response"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-source-id"
+            },
+            "in": "header",
+            "name": "x-source-id",
+            "description": "API-KEY de acesso do canal"
+          }
+        ],
+        "operationId": "v2CreateOrderRefund",
+        "description": "Rota responsável por realizar estornos de pagamento processados pelo Gateway.\n\n **Atenção**: \n\n Para realizar o estorno o pagamento deve obedecer as seguintes condições:\n\n - Pagamento original deve sido processado com sucesso pelo Gateway\n - Pagamento original deve ter sido processado nos últimos 90 dias",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderRefundRequest"
+              }
+            }
+          },
+          "description": "Dados necessário para criar um estorno baseado em um pagamento processado anteriormente"
+        },
+        "tags": [
+          "Order"
+        ]
+      }
+    },
+    "v2/recipient/{reference_key}": {
+      "get": {
+        "summary": "Busca os dados do recebedor utilizando a chave de identificação [reference_key]",
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceNotFoundError"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipientMinimal"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-source-id"
+            },
+            "in": "header",
+            "name": "x-source-id",
+            "description": "API-KEY de acesso do canal"
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceKeyParameter"
+            },
+            "in": "path",
+            "name": "reference_key",
+            "description": "Chave de identificação do recebedor compartilhada entre o Gateway e o solicitante do cadastro"
+          }
+        ],
+        "operationId": "v2FindRecipientReferenceKey",
+        "description": "Rota responsável por realizar a busca pelos dados cadastrais do recebedor usando como chave a [reference_key] fornecida no momento de sua criação",
+        "tags": [
+          "Recipient"
+        ]
+      }
+    },
+    "v2/order/cancellation": {
+      "post": {
+        "summary": "Realiza cancelamento de um pedido em análise",
+        "responses": {
+          "404": {
+            "description": "Not found"
+          },
+          "424": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedDependencyError"
+                }
+              }
+            },
+            "description": "Failed Dependency"
+          },
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderMinimal"
+                }
+              }
+            },
+            "description": "Ok"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-source-id"
+            },
+            "in": "header",
+            "name": "x-source-id",
+            "description": "API-KEY de acesso do canal"
+          }
+        ],
+        "operationId": "v2CancellationOrderSoid",
+        "description": "Endpoint responsável pelo cancelamento de pedidos aprovados/processando.\n\nStatus obrigatórios para realizar o cancelamento [**AUTHORIZED**, **RECEIVED**, **APPROVED**]\n",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderCancelSoidRequest"
+              }
+            }
+          },
+          "description": "Object to request the cancellation of previously approved/authorized order."
+        },
+        "tags": [
+          "Order"
+        ]
+      }
+    },
+    "v2/recipient": {
+      "post": {
+        "summary": "Cria um novo recebedor ou atualiza os dados caso o recebedor já exista",
+        "responses": {
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipientMinimal"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "424": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedDependencyError"
+                }
+              }
+            },
+            "description": "Failed Dependency"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecipientMinimal"
+                }
+              }
+            },
+            "description": "Success response"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-source-id"
+            },
+            "in": "header",
+            "name": "x-source-id",
+            "description": "API-KEY de acesso do canal"
+          }
+        ],
+        "operationId": "v2CreateRecipient",
+        "description": "Rota responsável pela criação de um novo recebedor ou atualização dos dados cadastrais caso o recebedor já exista.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipientRequest"
+              }
+            }
+          },
+          "description": "Dados necessários para criar um novo recebedor"
+        },
+        "tags": [
+          "Recipient"
+        ]
+      }
+    },
+    "v2/order/refund/callback/{reference_key}": {
+      "get": {
+        "summary": "Realiza busca estado atual do estorno utilizando a [reference_key] da transação associada a solicitação de estorno",
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceNotFoundError"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderRefundMinimal"
+                }
+              }
+            },
+            "description": "Ok"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-source-id"
+            },
+            "in": "header",
+            "name": "x-source-id",
+            "description": "API-KEY de acesso do canal"
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceKeyParameter"
+            },
+            "in": "path",
+            "name": "reference_key",
+            "description": "Chave de identificação da solicitação de estorno compartilhada entre o Gateway e o solicitante do estorno"
+          }
+        ],
+        "operationId": "v2GetOrderRefundCallbackReferenceKey",
+        "description": "Rota responsável por retornar as informações do estado atual do estorno, utilizando a reference key da transação associada a solicitação de estorno",
+        "tags": [
+          "Order"
+        ]
+      }
+    },
+    "v2/order/capture": {
+      "put": {
+        "summary": "Realiza captura de um valor menor (captura parcial) do pagamento da venda junto ao adquirente de cartão de crédito",
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceNotFoundError"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "424": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedDependencyError"
+                }
+              }
+            },
+            "description": "Failed Dependency"
+          },
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderMinimal"
+                }
+              }
+            },
+            "description": "Ok"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-source-id"
+            },
+            "in": "header",
+            "name": "x-source-id",
+            "description": "API-KEY de acesso do canal"
+          }
+        ],
+        "operationId": "v2CreateOrderCapture",
+        "description": "Rota responsável pela captura de valores menores do que aqueles da solicitação de pagamento realizadas na modalidade captura manual\n\n **Atenção**: O pagamento deve estar com status [approved] para que seja possivel realizar a captura",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureParcialRequest"
+              }
+            }
+          },
+          "description": "Dados necessários para captura parcial de um pagamento previamente autorizado"
+        },
+        "tags": [
+          "Order"
+        ]
+      }
+    },
+    "v2/organization/channel": {
+      "post": {
+        "summary": "Cria um novo canal através do qual a organização poderá receber pagamentos com cartão de crédito",
+        "responses": {
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationChannelMinimal"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationChannelMinimal"
+                }
+              }
+            },
+            "description": "Success response"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          }
+        ],
+        "operationId": "v2CreateOrganizationAdmin",
+        "description": "Rota responsável por criar um novo canal associado a uma organização previamente cadastrada",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationChannelRequest"
+              }
+            }
+          },
+          "description": "Dados necessários para criar um novo canal e associá-lo a uma organização criada previamente"
+        },
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "v2/organization/{reference_key}": {
+      "get": {
+        "summary": "Realiza a busca dos dados cadastrais da organização baseada na [reference_key] fornecida pelo solicitante no momento de sua criação",
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceNotFoundError"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationMinimal"
+                }
+              }
+            },
+            "description": "Ok"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceKeyParameter"
+            },
+            "in": "path",
+            "name": "reference_key",
+            "description": "Chave de identificação da organização compartilhada entre o Gateway e o solicitante do cadastro"
+          }
+        ],
+        "operationId": "v2CreateOrganizationReferenceKey",
+        "description": "Rota responsável por retornar os dados cadastrais de uma organização, utilizando como chave a reference_key",
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "v2/order/callback/transaction/{reference_key}": {
+      "post": {
+        "summary": "Realiza busca do estado atual do processamento do pagamento utilizando o campo [reference_key] da transação associada ao pagamento e envia uma notificação para o endereço de contato fornecido na solicitação de pagamento",
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceNotFoundError"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderMinimal"
+                }
+              }
+            },
+            "description": "Ok"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-source-id"
+            },
+            "in": "header",
+            "name": "x-source-id",
+            "description": "API-KEY de acesso do canal"
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceKeyParameter"
+            },
+            "in": "path",
+            "name": "reference_key",
+            "description": "Chave de identificação do pagamento compartilhada entre o Gateway e o solicitante do processamento"
+          }
+        ],
+        "operationId": "v2CreateOrderCallbackTransactionReferenceKey",
+        "description": "Rota responsável por retornar as informações do estado atual da solicitação de pagamento, utilizando a [reference key] da transação associada ao pagamento e envia a notificação para o endereço de contato fornecido no campo [callback_url]\n\n **Atenção**: a [reference_key] é um identificador informado no momento da criação do pagamento e representa a chave compartilhada entre o Gateway e o solicitante do processamento",
+        "tags": [
+          "Order"
+        ]
+      },
+      "get": {
+        "summary": "Realiza busca do estado atual do processamento do pagamento utilizando o campo [reference_key] da transação associada ao pagamento",
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceNotFoundError"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderMinimal"
+                }
+              }
+            },
+            "description": "Ok"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-source-id"
+            },
+            "in": "header",
+            "name": "x-source-id",
+            "description": "API-KEY de acesso do canal"
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceKeyParameter"
+            },
+            "in": "path",
+            "name": "reference_key",
+            "description": "Chave de identificação do pagamento compartilhada entre o Gateway e o solicitante do processamento"
+          }
+        ],
+        "operationId": "v2GetOrderCallbackTransactionReferenceKey",
+        "description": "Rota responsável por retornar as informações do estado atual da solicitação de pagamento, utilizando a [reference key] da transação associada ao pagamento",
+        "tags": [
+          "Order"
+        ]
+      }
+    },
+    "v2/order": {
+      "post": {
+        "summary": "Criação de uma solicitação para pagamento de venda com cartão de crédito",
+        "responses": {
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderMinimal"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "424": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedDependencyError"
+                }
+              }
+            },
+            "description": "Failed Dependency"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderMinimal"
+                }
+              }
+            },
+            "description": "Success response"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-source-id"
+            },
+            "in": "header",
+            "name": "x-source-id",
+            "description": "API-KEY de acesso do canal"
+          }
+        ],
+        "operationId": "v2CreateOrder",
+        "description": "Rota responsável pela criação de uma nova operação para pagamento de venda com cartão de crédito. \n\n **Atenção**: caso [capture] for definido como \"true\" a solicitação será criada e capturada imediatamente, mas se o campo for definido como \"false\" \n é de responsabilidade do usuário utilizar as rotas de captura total ou parcial para continuar o processamento do pagamento",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentOrderRequest"
+              }
+            }
+          },
+          "description": "Dados necessário para criação de um pagamento de venda com cartão de crédito."
+        },
+        "tags": [
+          "Order"
+        ]
+      }
+    },
+    "v2/organization": {
+      "post": {
+        "summary": "Cria o cadastro de uma nova organização",
+        "responses": {
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationMinimal"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationMinimal"
+                }
+              }
+            },
+            "description": "Success response"
+          }
+        },
+        "operationId": "v2CreateOrganization",
+        "description": "Rota responsável por criar o cadastro de uma nova organização. \n\n **Atenção**: A organização é a entidade que estará associada a todas as solicitações processadas pelo gateway. Ela atua como uma entidade \"guarda-chuva\" que reune todos os pagamentos e estornos transacionados junto as adquirentes de cartão de credito",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationRequest"
+              }
+            }
+          },
+          "description": "Dados necessário para criar uma nova organização"
+        },
+        "tags": [
+          "Organization"
+        ]
+      }
+    },
+    "v2/order/capture/{soid}": {
+      "post": {
+        "summary": "Realiza captura total do pagamento da venda junto ao adquirente de cartão de crédito",
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceNotFoundError"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "424": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedDependencyError"
+                }
+              }
+            },
+            "description": "Failed Dependency"
+          },
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderMinimal"
+                }
+              }
+            },
+            "description": "Ok"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            },
+            "description": "Unauthorized Error"
+          }
+        },
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-tenant-internal-id"
+            },
+            "in": "header",
+            "name": "x-tenant-internal-id",
+            "description": "Public-Id da organização."
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/x-source-id"
+            },
+            "in": "header",
+            "name": "x-source-id",
+            "description": "API-KEY de acesso do canal"
+          },
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/OrderCaptureSoidRequest"
+            },
+            "in": "path",
+            "name": "soid",
+            "description": "Identificador de solicitação de pagamento, chave única que identifica o pagamento internamento no Gateway"
+          }
+        ],
+        "operationId": "v2CreateOrderCaptureSoid",
+        "description": "Rota responsável pela captura do valor completo de solicitações de pagamento realizadas na modalidade captura manual\n\n **Atenção**: O pagamento deve estar com status [approved] para que seja possivel realizar a captura",
+        "tags": [
+          "Order"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Order",
+      "description": "Rotas relacionadas a manipulação do processamento de pagamento de uma venda com cartão de crédito"
+    },
+    {
+      "name": "Organization",
+      "description": "Rotas relacionadas a criação e consulta dos dados da organização e canais que consumirão os serviços do Gateway de Pagamentos"
+    },
+    {
+      "name": "Recipient",
+      "description": "Rotas relacionadas a criação e consulta dos dados de recebedores associados as organizações"
+    }
+  ]
+}

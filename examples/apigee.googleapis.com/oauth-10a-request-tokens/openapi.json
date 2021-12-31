@@ -1,0 +1,209 @@
+{
+  "components": {
+    "schemas": {
+      "NameValue": {
+        "type": "object",
+        "description": "Name/value attribute pairs.",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Value of attribute."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of attribute."
+          }
+        }
+      },
+      "AccessTokenAttributes": {
+        "type": "object",
+        "description": "Update access token attributes.",
+        "properties": {
+          "attributes": {
+            "items": {
+              "$ref": "#/components/schemas/NameValue"
+            },
+            "type": "array",
+            "description": "Attributes used to extend the default profile."
+          },
+          "scope": {
+            "type": "string",
+            "description": "List of scopes associated with the access token, validated at runtime against scopes defined in API product."
+          }
+        }
+      }
+    },
+    "parameters": {
+      "org_name": {
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "in": "path",
+        "name": "org_name",
+        "description": "Organization name."
+      },
+      "action": {
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "in": "query",
+        "name": "action",
+        "description": "Set to `approve` or `revoke`."
+      },
+      "request_token": {
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "in": "path",
+        "name": "request_token",
+        "description": "Organization name."
+      }
+    },
+    "securitySchemes": {
+      "Basic": {
+        "scheme": "basic",
+        "type": "http",
+        "description": "Multi-factor authentication is not supported."
+      },
+      "OAuth": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey",
+        "description": "For OAuth, enter the following in the Key field: Bearer %your-token% (see https://docs.apigee.com/api-platform/system-administration/using-oauth2#get-the-tokens)"
+      }
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://api.enterprise.apigee.com/v1"
+    }
+  ],
+  "security": [
+    {
+      "Basic": []
+    },
+    {
+      "OAuth": []
+    }
+  ],
+  "info": {
+    "version": "1.0",
+    "title": "OAuth 1.0a Request Tokens API",
+    "description": "Description."
+  },
+  "paths": {
+    "/organizations/{org_name}/oauth1/requesttokens/{request_token}": {
+      "post": {
+        "summary": "Approve, revoke, or update OAuth 1.0a request token",
+        "responses": {
+          "400": {
+            "description": "Bad request"
+          },
+          "200": {
+            "description": "OK"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/org_name"
+          },
+          {
+            "$ref": "#/components/parameters/request_token"
+          },
+          {
+            "$ref": "#/components/parameters/request_token"
+          }
+        ],
+        "operationId": "approveRevokeUpdateOAuth10aRequestToken",
+        "description": "Enables you to perform one of the following tasks:\n\n* Approve or revoke the specified request token by setting the `action` query parameter to `approve` or `revoke`.\n* Update the specified request token with a new profile. With Apigee Edge for Public Cloud, the attribute limit is 18.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessTokenAttributes"
+              }
+            }
+          }
+        },
+        "tags": [
+          "OAuth 1.0a"
+        ]
+      },
+      "get": {
+        "summary": "Get OAuth 1.0a request token",
+        "responses": {
+          "400": {
+            "description": "Bad request"
+          },
+          "200": {
+            "description": "OK"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/org_name"
+          },
+          {
+            "$ref": "#/components/parameters/request_token"
+          }
+        ],
+        "operationId": "getOAuth10aRequestToken",
+        "description": "Gets details for the specified OAuth 1.0a request token.",
+        "tags": [
+          "OAuth 1.0a"
+        ]
+      },
+      "delete": {
+        "summary": "Delete OAuth 1.0a Request Token",
+        "responses": {
+          "400": {
+            "description": "Bad request"
+          },
+          "200": {
+            "description": "OK"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/org_name"
+          },
+          {
+            "$ref": "#/components/parameters/request_token"
+          }
+        ],
+        "operationId": "deleteOAuth10aRequestToken",
+        "description": "Deletes the specified OAuth 1.0a request token.",
+        "tags": [
+          "OAuth 1.0a"
+        ]
+      }
+    },
+    "/organizations/{org_name}/oauth1/requesttokens": {
+      "get": {
+        "summary": "List OAuth 1.0a request tokens",
+        "responses": {
+          "400": {
+            "description": "Bad request"
+          },
+          "200": {
+            "description": "OK"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/org_name"
+          }
+        ],
+        "operationId": "listOAuth10aRequestTokens",
+        "description": "Lists the OAuth 1.0a request tokens in an organization.",
+        "tags": [
+          "OAuth 1.0a"
+        ]
+      }
+    }
+  }
+}

@@ -3,12 +3,13 @@
 
 #include "path.h"
 
+#include "rest.h"
 #include <ext/pb_ds/assoc_container.hpp>
 #include <ext/pb_ds/tag_and_trait.hpp>
 #include <ext/pb_ds/trie_policy.hpp>
+#include <map>
 #include <memory>
 #include <unordered_map>
-#include <map>
 #include <vector>
 
 namespace openapi {
@@ -41,7 +42,7 @@ public:
         path_to_node_map_(std::move(path_to_node_map)),
         value_(std::move(value)) {}
 
-  PathToNodeMap::const_iterator find(const std::string &path) const;
+  PathToNodeMap::const_iterator find(const path::Path &path) const;
 
   PathToNodeMap::const_iterator begin() const {
     return path_to_node_map_.begin();

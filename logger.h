@@ -34,8 +34,9 @@ private:
 #define LOG(LEVEL)                                                             \
   (*(::logger::Logger(LEVEL, &std::cerr).printprefix().stream())               \
    << " [" << __FILE__ << ":" << __LINE__ << "] ")
-#define CHECK(EXP)                                                             \
+#define CHECK_M(EXP, MSG)                                                             \
   if (!(EXP)) {                                                                \
-    LOG(FATAL) << #EXP << " evaluate to false.";                               \
+    LOG(FATAL) << #EXP << " evaluate to false. " << (MSG);                               \
   }
+#define CHECK(EXP) CHECK_M(EXP, "")
 #endif
