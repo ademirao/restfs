@@ -28,15 +28,14 @@ private:
   std::ostream *const os_;
 };
 
-
 } // namespace logger
 
 #define LOG(LEVEL)                                                             \
   (*(::logger::Logger(LEVEL, &std::cerr).printprefix().stream())               \
    << " [" << __FILE__ << ":" << __LINE__ << "] ")
-#define CHECK_M(EXP, MSG)                                                             \
+#define CHECK_M(EXP, MSG)                                                      \
   if (!(EXP)) {                                                                \
-    LOG(FATAL) << #EXP << " evaluate to false. " << (MSG);                               \
+    LOG(FATAL) << #EXP << " evaluate to false. " << (MSG);                     \
   }
 #define CHECK(EXP) CHECK_M(EXP, "")
 #endif

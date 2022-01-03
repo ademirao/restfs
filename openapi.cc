@@ -69,6 +69,36 @@ static const Json::Value &FindOrDie(const Json::Value &value,
   CHECK(found != nullptr);
   return *found;
 }
+static const Json::Value *FindAbsolutePath(const Json::Value &root,
+                                           const path::Path &path) {
+  const Json::Value *current = &root;
+  auto parts_it = path.begin();
+  CHECK(parts_it != path.end());
+  ++parts_it;
+  for (; parts_it != path.end(); ++parts_it) {
+    if (!(current->isObject() || current->isArray() || current->isNull())) {
+      LOG(INFO) << "Invalid node " << current->isString() << " for path "
+                << path << " part " << *parts_it;
+      return nullptr;
+    }
+    const path::Path part = *parts_it;
+    const std::string part_str = parts_it->string();
+    const char *part_str_end = part_str.c_str() + part.string().length();
+    current = current->find(part_str.c_str(), part_str_end);
+    if (current == nullptr)
+      return nullptr;
+  }
+  return current;
+}
+static const Json::Value &FindAbsolutePath(const Json::Value &root,
+                                           const path::Path &path,
+                                           const Json::Value &default_value) {
+  const Json::Value *value = FindAbsolutePath(root, path);
+  if (value == nullptr) {
+    return default_value;
+  }
+  return *value;
+}
 
 class NodeFactory final {
 public:
@@ -76,29 +106,45 @@ public:
   ~NodeFactory() {}
 
   const Json::Value &ResolveRef(const Json::Value &value) const {
-    const Json::Value &ret_value = Find(value, "$ref", Json::Value::null);
-    if (ret_value == Json::Value::null) {
+    const Json::Value *sub = Find(value, "$ref");
+    if (sub == nullptr) {
       return value;
     }
 
-    const std::string &ref_value = ret_value.asString();
+    const std::string &ref_value = sub->asString();
     CHECK(ref_value[0] == '#');
     const path::Path ref_value_path(ref_value.substr(1));
-    const Json::Value *current = root_;
-    for (const auto &part : ref_value_path) {
-      const std::string part_str = part.string();
-      if (part_str == "/")
-        continue;
-      const char *part_str_end = part_str.c_str() + part.string().length();
-      current = current->find(part_str.c_str(), part_str_end);
-      CHECK_M(current != nullptr, "Couldn't find part (" + part.string() +
-                                      ") in " + ref_value_path.string());
-    }
-    return *current;
+    sub = FindAbsolutePath(*root_, ref_value_path);
+    CHECK_M(sub != nullptr, "Couldn't find path " + ref_value_path.string());
+    return *sub;
   }
 
-  path::Node GetOperationNode(const Json::Value *json) const {
-    return path::Node("", {}, json, sizeof(json));
+  path::Node WriteOperationNode(const path::Path &path,
+                                const Json::Value *json) const {
+
+    path::Node node = path::SimpleFileNode(path, json, {S_IREAD});
+    const Json::Value &content =
+        FindAbsolutePath(*json, "/requestBody/content", Json::Value::null);
+    const Json::Value &application_json =
+        Find(content, "application/json", Json::Value::null);
+    const Json::Value &response_details = FindAbsolutePath(
+        application_json, "/schema/example/", Json::Value::null);
+    LOG(INFO) << "WRITE Entity: " << response_details;
+    return node;
+  }
+
+  path::Node ReadOperationNode(const path::Path &path,
+                               const Json::Value *json) const {
+    path::Node node = path::SimpleFileNode(path, json, {S_IREAD});
+    const Json::Value &content =
+        FindAbsolutePath(*json, "/responses/200/content", Json::Value::null);
+    const Json::Value &application_json =
+        Find(content, "application/json", Json::Value::null);
+    const Json::Value &response_details =
+        FindAbsolutePath(application_json, "/schema/example/Response/details",
+                         Json::Value::null);
+    LOG(INFO) << "READ Entity: " << response_details;
+    return node;
   }
 
   std::vector<std::string>
@@ -106,7 +152,7 @@ public:
     std::vector<std::string> required_query_params;
     const Json::Value &parameters =
         Find(*json, "parameters", Json::Value::null);
-    for (const auto parameter : parameters) {
+    for (const auto &parameter : parameters) {
       const auto &param = ResolveRef(parameter);
       const auto &in = Find(param, "in", Json::Value::null);
       if (in.asString() != "query")
@@ -140,27 +186,24 @@ public:
     switch (op) {
     case rest::constants::HEAD:
     case rest::constants::GET:
-      node_mode |= S_IREAD;
-      break;
+      return ReadOperationNode(filename, json);
     case rest::constants::PATCH:
     case rest::constants::DELETE:
     case rest::constants::POST:
     case rest::constants::PUT:
-      node_mode |= S_IWRITE;
-      break;
+      return WriteOperationNode(filename, json);
     case rest::constants::INVALID:
     case rest::constants::TRACE:
     case rest::constants::OPTIONS:
-      LOG(FATAL) << "Unsupported operation: " << op;
       break;
     }
-
-    return path::SimpleFileNode(filename, json, {node_mode});
+    LOG(FATAL) << "Unsupported operation: " << op;
+    return path::Node(path::Path(), {}, nullptr, 0); // Unreachable
   }
 
 private:
   const Json::Value *root_;
-};
+}; // namespace openapi
 
 std::unique_ptr<const Directory>
 NewDirectoryFromJsonValue(const std::string &host,
@@ -198,8 +241,6 @@ NewDirectoryFromJsonValue(const std::string &host,
         current_path /= part;
         auto insert_pair =
             insert_node(current_path, path::DirNode(part, nullptr));
-        LOG(INFO) << insert_pair.first->first << ": "
-                  << insert_pair.first->second;
         parent = &insert_pair.first->second;
       }
 
@@ -208,6 +249,7 @@ NewDirectoryFromJsonValue(const std::string &host,
         const auto it = rest::constants::operations_map().find(op_name);
         CHECK(it != rest::constants::operations_map().end());
         path::Node node = factory.OperationNode(it->second, &op_json);
+        LOG(INFO) << "Operation " << path;
         const auto node_path = node.path();
         insert_node(current_path / node_path, std::move(node));
 
@@ -217,8 +259,6 @@ NewDirectoryFromJsonValue(const std::string &host,
         auto insert_pair =
             insert_node(meta_json, path::SimpleFileNode(meta_json.filename(),
                                                         &op_json, {S_IREAD}));
-        LOG(INFO) << insert_pair.second << " - " << insert_pair.first->first
-                  << ": " << insert_pair.first->second << "---->" << op_name;
         CHECK_M(insert_pair.second,
                 "Path already exists: " + meta_json.string());
       }
