@@ -38,65 +38,96 @@ inline bool ends_with(const std::string &value, const std::string &ending) {
   return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-int api_read(const char *in_path, char *buf, size_t size, off_t offset,
-             struct fuse_file_info *fi) {
-  LOG(INFO) << "api_read " << in_path;
-
-  path::RefValueMap captures;
-  const path::Path ref_path =
-      path::utils::BindRefs(in_path, path::utils::ReferenceBinder);
-  const path::Path value_path =
-      path::utils::BindRefs(in_path, path::utils::ValueBinder);
-
-  const auto it = directory->find(ref_path);
-  if (it == directory->end()) {
-    return -ENOENT;
-  }
-
-  std::string filecontent = "";
-  LOG(INFO) << it->first.filename();
-  if (ends_with(it->first.filename().string(), "metadata.json")) {
-    const Json::Value *v = it->second.data<Json::Value>();
-    Json::FastWriter fw;
-    filecontent = fw.write(*v);
-  } else {
-    path::Path filestem = it->first.filename().stem();
-    std::string operation_str =
-        (filestem.has_extension()) ? filestem.extension() : filestem.stem();
-    const auto find_it = rest::constants::operations_map().find(operation_str);
-    if (find_it == rest::constants::operations_map().end()) {
-      LOG(INFO) << "Unexpected file name";
-      return -ENOENT;
-    }
-
-    http::Request request(find_it->second);
-    auto response = request.fetch(directory->directory_url_prefix() +
-                                  value_path.parent_path().string());
-    if (response->http_code != 200) {
-      return -ENOENT;
-    }
-    filecontent = response->data.str();
-  }
-  size_t len = filecontent.length();
+int str_to_buffer(const std::string &content, char *buf, size_t size,
+                  off_t offset) {
+  size_t len = content.length();
 
   if (offset >= len) {
     return 0;
   }
 
   if (offset + size > len) {
-    memcpy(buf, filecontent.c_str() + offset, len - offset);
+    memcpy(buf, content.c_str() + offset, len - offset);
     return len - offset;
   }
 
-  memcpy(buf, filecontent.c_str() + offset, size);
+  memcpy(buf, content.c_str() + offset, size);
   return size;
 }
 
-int api_write(const char *path, const char *buf, size_t size, off_t offset,
+const std::string ReadMetadataNode(const path::Path &path,
+                                   const path::Node &node) {
+  const Json::Value *v = node.data<Json::Value>();
+  Json::FastWriter fw;
+  return fw.write(*v);
+}
+
+const std::string ReadEntityNode(const path::Path &path,
+                                 const path::Node &node) {
+  const openapi::Entity *v = node.data<openapi::Entity>();
+  return "";
+}
+
+const std::string ReadOperationNode(const path::Path &path,
+                                    const path::Node &node) {
+  const path::Path filestem = node.path().filename().stem();
+  const std::string operation_str =
+      (filestem.has_extension()) ? filestem.extension() : filestem.stem();
+  const auto find_it = rest::constants::operations_map().find(operation_str);
+  if (find_it == rest::constants::operations_map().end()) {
+    LOG(INFO) << "Unexpected file name";
+    return "";
+  }
+  const path::Path value_path =
+      path::utils::BindRefs(path, path::utils::ValueBinder);
+
+  auto response = http::Request(find_it->second)
+                      .fetch(directory->directory_url_prefix() +
+                             value_path.parent_path().string());
+  if (response->http_code != 200) {
+    return "";
+  }
+  return response->data.str();
+}
+
+int api_read(const char *in_path, char *buf, size_t size, off_t offset,
+             struct fuse_file_info *fi) {
+  LOG(INFO) << "api_read " << in_path;
+  const path::Path ref_path =
+      path::utils::BindRefs(in_path, path::utils::ReferenceBinder);
+  const auto it = directory->find(ref_path);
+  if (it == directory->end()) {
+    return -ENOENT;
+  }
+  const path::Path path = it->first;
+  if (ends_with(path.filename().string(), "metadata.json")) {
+    return str_to_buffer(ReadMetadataNode(path, it->second), buf, size, offset);
+  }
+
+  if (ends_with(path.filename().string(), "entity.json")) {
+
+    return str_to_buffer(ReadEntityNode(path, it->second), buf, size, offset);
+  }
+
+  return str_to_buffer(ReadOperationNode(path, it->second), buf, size, offset);
+}
+
+int api_write(const char *in_path, const char *buf, size_t size, off_t offset,
               struct fuse_file_info *fi) {
-  LOG(INFO) << "api_write " << path << ", "
-            << ", " << offset << ", " << fi;
-  return 0;
+  const path::Path ref_path =
+      path::utils::BindRefs(in_path, path::utils::ReferenceBinder);
+  const auto it = directory->find(ref_path);
+  if (it == directory->end()) {
+    return -ENOENT;
+  }
+  path::Path path = it->first;
+  std::string filecontent = "";
+  if (ends_with(path.filename().string(), "entity.json")) {
+    const openapi::Entity *v = it->second.data<openapi::Entity>();
+    path = v->write_path;
+  }
+
+  return size;
 }
 
 int api_statfs(const char *path, struct statvfs *statv) {
@@ -107,12 +138,8 @@ int api_statfs(const char *path, struct statvfs *statv) {
 int api_readdir(const char *path_str, void *buf, fuse_fill_dir_t filler,
                 off_t offset, struct fuse_file_info *fi,
                 enum fuse_readdir_flags flag) {
-  LOG(INFO) << "api_readdir " << path_str << ", " << filler << ", " << offset
-            << ", " << fi;
   const path::Path path(path::utils::PathToRefValueMap(path_str));
   const path::Path &filename(path.filename());
-
-  std::unordered_set<std::string> already_reported;
 
   auto it = directory->find(path);
   if (it == directory->end()) {
@@ -121,7 +148,7 @@ int api_readdir(const char *path_str, void *buf, fuse_fill_dir_t filler,
 
   for (auto child : it->second.children()) {
     if (filler(buf, child->path().filename().c_str(), &(child->stat()), 0,
-               (fuse_fill_dir_flags)0)) {
+               (fuse_fill_dir_flags)0)) { // Error filling the buffer.
       return -1;
     }
   }

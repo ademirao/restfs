@@ -33,14 +33,23 @@ NewDirectoryFromJsonValue(const std::string &host_name,
                           std::unique_ptr<const Json::Value> json_data);
 const Json::Value JsonValueFromPath(const path::Path &path);
 
+struct Entity final {
+  const path::Path path;
+  const path::Path read_path;
+  const path::Path write_path;
+  const path::Path delete_path;
+  const path::NodeMode modes;
+};
+
 class Directory final {
 public:
   Directory(const std::string &directory_url_prefix,
             PathToNodeMap path_to_node_map,
+            const std::vector<Entity> &&entities,
             std::unique_ptr<const Json::Value> value)
       : directory_url_prefix_(directory_url_prefix),
         path_to_node_map_(std::move(path_to_node_map)),
-        value_(std::move(value)) {}
+        entities_(std::move(entities)), value_(std::move(value)) {}
 
   PathToNodeMap::const_iterator find(const path::Path &path) const;
 
@@ -73,6 +82,7 @@ public:
 private:
   const std::string directory_url_prefix_;
   const openapi::PathToNodeMap path_to_node_map_;
+  const std::vector<Entity> entities_;
   const std::unique_ptr<const Json::Value> value_;
 };
 

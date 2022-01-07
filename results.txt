@@ -1,0 +1,5 @@
+# Automatically generated
+# duptype id depth size device inode priority name
+DUPTYPE_FIRST_OCCURRENCE 4 0 5 59 21 6 /mnt/restfs/v2/order/callback/transaction/{reference_key}//post.metadata.json
+DUPTYPE_OUTSIDE_TREE -4 0 5 59 24 9 /mnt/restfs/v2/order/capture/{soid}//post.metadata.json
+# end of file

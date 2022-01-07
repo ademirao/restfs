@@ -69,6 +69,7 @@ static const Json::Value &FindOrDie(const Json::Value &value,
   CHECK(found != nullptr);
   return *found;
 }
+
 static const Json::Value *FindAbsolutePath(const Json::Value &root,
                                            const path::Path &path) {
   const Json::Value *current = &root;
@@ -90,6 +91,7 @@ static const Json::Value *FindAbsolutePath(const Json::Value &root,
   }
   return current;
 }
+
 static const Json::Value &FindAbsolutePath(const Json::Value &root,
                                            const path::Path &path,
                                            const Json::Value &default_value) {
@@ -121,30 +123,24 @@ public:
 
   path::Node WriteOperationNode(const path::Path &path,
                                 const Json::Value *json) const {
-
-    path::Node node = path::SimpleFileNode(path, json, {S_IREAD});
     const Json::Value &content =
         FindAbsolutePath(*json, "/requestBody/content", Json::Value::null);
     const Json::Value &application_json =
         Find(content, "application/json", Json::Value::null);
-    const Json::Value &response_details = FindAbsolutePath(
-        application_json, "/schema/example/", Json::Value::null);
-    LOG(INFO) << "WRITE Entity: " << response_details;
-    return node;
+    const Json::Value &schema_json =
+        ResolveRef(Find(application_json, "schema", Json::Value::null));
+    return path::SimpleFileNode(path, json, {S_IWRITE});
   }
 
   path::Node ReadOperationNode(const path::Path &path,
                                const Json::Value *json) const {
-    path::Node node = path::SimpleFileNode(path, json, {S_IREAD});
     const Json::Value &content =
         FindAbsolutePath(*json, "/responses/200/content", Json::Value::null);
     const Json::Value &application_json =
         Find(content, "application/json", Json::Value::null);
-    const Json::Value &response_details =
-        FindAbsolutePath(application_json, "/schema/example/Response/details",
-                         Json::Value::null);
-    LOG(INFO) << "READ Entity: " << response_details;
-    return node;
+    const Json::Value &schema_json =
+        ResolveRef(Find(application_json, "schema", Json::Value::null));
+    return path::SimpleFileNode(path, json, {S_IREAD});
   }
 
   std::vector<std::string>
@@ -201,6 +197,11 @@ public:
     return path::Node(path::Path(), {}, nullptr, 0); // Unreachable
   }
 
+  path::Node EntityOperationNode(const path::Path &path,
+                                 const Entity *entity) const {
+    return path::SimpleFileNode(path, entity, {entity->modes});
+  }
+
 private:
   const Json::Value *root_;
 }; // namespace openapi
@@ -208,13 +209,14 @@ private:
 std::unique_ptr<const Directory>
 NewDirectoryFromJsonValue(const std::string &host,
                           std::unique_ptr<const Json::Value> json_data) {
+  NodeFactory factory(json_data.get());
   PathToNodeMap path_to_node_map;
   auto insert_it =
       path_to_node_map.emplace(path::Path("/"), path::DirNode("/", nullptr));
   CHECK(insert_it.second);
   path::Node *root = &insert_it.first->second;
   auto insert_node = [root, &path_to_node_map](const path::Path &in_path,
-                                               path::Node &&node) {
+                                               const path::Node &&node) {
     const auto path = path::utils::PathToRefValueMap(in_path);
     auto insert_pair = path_to_node_map.emplace(path, node);
     if (insert_pair.second) {
@@ -224,18 +226,38 @@ NewDirectoryFromJsonValue(const std::string &host,
     }
     return insert_pair;
   };
+
+  auto insert_rest_operations_metadata = [&insert_node, &factory](
+                                             const path::Path &directory_path,
+                                             const Json::Value &value) {
+    for (const std::string &op_name : value.getMemberNames()) {
+      const auto &op_json = value[op_name];
+      const auto it = rest::constants::operations_map().find(op_name);
+      CHECK(it != rest::constants::operations_map().end());
+      const path::Node node = factory.OperationNode(it->second, &op_json);
+      const auto node_path = node.path();
+      insert_node(directory_path / node_path, std::move(node));
+
+      const path::Path meta_json =
+          directory_path /
+          (node_path.filename().stem().string() + ".metadata.json");
+      auto insert_pair = insert_node(
+          meta_json, path::SimpleFileNode(meta_json.filename(),
+                                          node.data<Json::Value>(), {S_IREAD}));
+      CHECK_M(insert_pair.second, "Path already exists: " + meta_json.string());
+    }
+  };
   const path::Path root_meta_json("/metadata.json");
-  insert_node(root_meta_json, // concat
-              path::SimpleFileNode(root_meta_json.filename(), &(*json_data),
-                                   {S_IREAD}));
+  insert_node(root_meta_json, path::SimpleFileNode(root_meta_json.filename(),
+                                                   &(*json_data), {S_IREAD}));
 
   const Json::Value &paths = (*json_data)["paths"];
-  NodeFactory factory(json_data.get());
   for (auto it = paths.begin(), end = paths.end(); it != end; ++it) {
     const path::Path path = path::utils::PathToRefValueMap(it.key().asString());
     const Json::Value &value = *it;
-    path::Node *parent = root;
-    [&factory, &path, &value, &parent, &insert_node]() {
+    
+    [&path, &value, &root, &insert_node, &insert_rest_operations_metadata]() {
+      const path::Node *parent = root;
       auto current_path = parent->path();
       for (const path::Path &part : path) {
         current_path /= part;
@@ -243,29 +265,25 @@ NewDirectoryFromJsonValue(const std::string &host,
             insert_node(current_path, path::DirNode(part, nullptr));
         parent = &insert_pair.first->second;
       }
-
-      for (const std::string &op_name : value.getMemberNames()) {
-        const auto &op_json = value[op_name];
-        const auto it = rest::constants::operations_map().find(op_name);
-        CHECK(it != rest::constants::operations_map().end());
-        path::Node node = factory.OperationNode(it->second, &op_json);
-        LOG(INFO) << "Operation " << path;
-        const auto node_path = node.path();
-        insert_node(current_path / node_path, std::move(node));
-
-        const path::Path meta_json =
-            current_path /
-            (node_path.filename().stem().string() + ".metadata.json");
-        auto insert_pair =
-            insert_node(meta_json, path::SimpleFileNode(meta_json.filename(),
-                                                        &op_json, {S_IREAD}));
-        CHECK_M(insert_pair.second,
-                "Path already exists: " + meta_json.string());
-      }
+      insert_rest_operations_metadata(current_path, value);
     }();
   }
+
+  std::vector<Entity> entities;
+  entities.emplace_back(
+      (Entity){.path = "/user-operations/users/user.entity.json",
+               .read_path = "/user-operations/users/get.json",
+               .write_path = "/user-operations/users/post.json",
+               .delete_path = "/user-operations/users/delete.json",
+               .modes = S_IREAD | S_IWRITE});
+
+  for (const Entity &entity : entities) {
+    insert_node(entity.path,
+                factory.EntityOperationNode(entity.path.filename(), &entity));
+  }
+
   return std::make_unique<Directory>(host, std::move(path_to_node_map),
-                                     std::move(json_data));
+                                     std::move(entities), std::move(json_data));
 }
 
 const Json::Value JsonValueFromPath(const path::Path &path) {
