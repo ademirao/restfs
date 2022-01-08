@@ -1,7 +1,6 @@
 #define FUSE_USE_VERSION 35
 
 #include "path.h"
-#include "rest.h"
 
 #include <cmath>
 #include <functional>

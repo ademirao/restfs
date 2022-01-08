@@ -24,7 +24,7 @@ class Request final {
 public:
   Request(const rest::constants::OPERATIONS operation = rest::constants::GET)
       : operation_(operation) {}
-  std::unique_ptr<Response> fetch(const std::string &url);
+  Response fetch(const std::string &url);
 
 private:
   const rest::constants::OPERATIONS operation_;

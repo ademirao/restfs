@@ -24,8 +24,9 @@ template <>
 Node SimpleFileNode<Json::Value>(const path::Path &path,
                                  const Json::Value *data,
                                  const std::initializer_list<NodeMode> &modes) {
-  Json::FastWriter fw;
-  const std::string filecontent = fw.write(*data);
+  Json::StreamWriterBuilder builder;
+  builder["indentation"] = "  "; // assume default for comments is None
+  const std::string filecontent = Json::writeString(builder, *data);
   return SimpleFileNode(path, data, filecontent.length(), modes);
 }
 
@@ -63,6 +64,7 @@ static const Json::Value &Find(const Json::Value &value, const std::string &key,
   return (found == nullptr) ? default_value : *found;
 }
 
+#pragma GCC diagnostic ignored "-Wunused-function"
 static const Json::Value &FindOrDie(const Json::Value &value,
                                     const std::string &key) {
   const Json::Value *found = Find(value, key);
@@ -123,23 +125,23 @@ public:
 
   path::Node WriteOperationNode(const path::Path &path,
                                 const Json::Value *json) const {
-    const Json::Value &content =
-        FindAbsolutePath(*json, "/requestBody/content", Json::Value::null);
-    const Json::Value &application_json =
-        Find(content, "application/json", Json::Value::null);
-    const Json::Value &schema_json =
-        ResolveRef(Find(application_json, "schema", Json::Value::null));
+    // const Json::Value &content =
+    //     FindAbsolutePath(*json, "/requestBody/content", Json::Value::null);
+    // const Json::Value &application_json =
+    //     Find(content, "application/json", Json::Value::null);
+    // const Json::Value &schema_json =
+    //     ResolveRef(Find(application_json, "schema", Json::Value::null));
     return path::SimpleFileNode(path, json, {S_IWRITE});
   }
 
   path::Node ReadOperationNode(const path::Path &path,
                                const Json::Value *json) const {
-    const Json::Value &content =
-        FindAbsolutePath(*json, "/responses/200/content", Json::Value::null);
-    const Json::Value &application_json =
-        Find(content, "application/json", Json::Value::null);
-    const Json::Value &schema_json =
-        ResolveRef(Find(application_json, "schema", Json::Value::null));
+    // const Json::Value &content =
+    //     FindAbsolutePath(*json, "/responses/200/content", Json::Value::null);
+    // const Json::Value &application_json =
+    //     Find(content, "application/json", Json::Value::null);
+    // const Json::Value &schema_json =
+    //     ResolveRef(Find(application_json, "schema", Json::Value::null));
     return path::SimpleFileNode(path, json, {S_IREAD});
   }
 
@@ -168,8 +170,6 @@ public:
 
   path::Node OperationNode(const rest::constants::OPERATIONS op,
                            const Json::Value *json) const {
-    path::NodeMode node_mode = 0; /* File type and mode */
-
     std::vector<std::string> required_query_params =
         FindRequiredQueryParams(json);
     path::Path filename =
@@ -255,7 +255,7 @@ NewDirectoryFromJsonValue(const std::string &host,
   for (auto it = paths.begin(), end = paths.end(); it != end; ++it) {
     const path::Path path = path::utils::PathToRefValueMap(it.key().asString());
     const Json::Value &value = *it;
-    
+
     [&path, &value, &root, &insert_node, &insert_rest_operations_metadata]() {
       const path::Node *parent = root;
       auto current_path = parent->path();
@@ -282,6 +282,7 @@ NewDirectoryFromJsonValue(const std::string &host,
                 factory.EntityOperationNode(entity.path.filename(), &entity));
   }
 
+  LOG(INFO) << "::::::"<< path_to_node_map;
   return std::make_unique<Directory>(host, std::move(path_to_node_map),
                                      std::move(entities), std::move(json_data));
 }
@@ -294,12 +295,13 @@ const Json::Value JsonValueFromPath(const path::Path &path) {
                           val[ref] = value;
                           return ref;
                         });
-  return std::move(val);
+  return val;
 }
 
 PathToNodeMap::const_iterator Directory::find(const path::Path &path) const {
   auto canonical_path = path::utils::PathToRefValueMap(path);
   const Json::Value from_path = JsonValueFromPath(path);
+  LOG(INFO) << "ademirao: " << path_to_node_map_;
   return path_to_node_map_.find(canonical_path);
 }
 

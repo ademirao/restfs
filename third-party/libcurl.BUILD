@@ -1,0 +1,63 @@
+
+# Building this may need one or more of the following:
+# sudo apt-get install gengetopt
+# sudo apt-get install autotools-dev
+# sudo apt-get install autoconf
+# sudo apt-get install libtool
+# sudo apt-get install autopoint
+# sudo apt-get install libpthread-stubs0-dev
+
+load("@rules_foreign_cc//foreign_cc:configure.bzl", "configure_make")
+
+filegroup(
+    name = "all",
+    srcs = glob(["**"]),
+)
+
+configure_make(
+    name = "curl_lib",
+    autogen = True,
+    autogen_command = "buildconf",
+    configure_env_vars = {"CFLAGS": "-Wno-error"},
+    configure_in_place = True,
+    configure_options = [
+        #"--help",
+        "--disable-shared",
+        "--disable-doc",
+        "--disable-examples",
+        "--with-openssl",
+        "--enable-http",
+        "--enable-ftp",
+        "--enable-file",
+        "--enable-rtsp",
+        "--enable-dict",
+        "--enable-telnet",
+        "--enable-tftp",
+        "--enable-pop3",
+        "--enable-imap",
+        "--enable-smtp",
+        "--enable-gopher",
+        "--enable-mqtt",
+    ],
+    lib_source = "@com_github_curl_curl//:all",
+    make_commands = [
+        "make",
+        "make install",
+    ],
+    out_static_libs = ["libcurl.a"],
+    deps = [
+        "@com_github_openssl_openssl//:openssl",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "curl",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":curl_lib",
+        "@com_github_openssl_openssl//:openssl",
+        "@com_gitlab_libidn_libidn2//:libidn2",
+        "@zlib",
+    ],
+)

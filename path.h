@@ -40,8 +40,8 @@ namespace path {
 class Node final {
 public:
   Node(const Node &node)
-      : path_(node.path_), stat_(node.stat_), children_(node.children_),
-        data_(node.data_), data_size_(node.data_size_) {}
+      : path_(node.path_), stat_(node.stat_), 
+        data_(node.data_), data_size_(node.data_size_),children_(node.children_) {}
   Node(const Path &path, const struct stat &stat, const void *data,
        const size_t data_size)
       : path_(path), stat_(stat), data_(data), data_size_(data_size) {}
@@ -86,7 +86,7 @@ const std::vector<path::Path> all_prefixes(const path::Path &path);
 typedef const std::function<const Ref(const Ref &ref, const std::string &value)>
     Binder;
 
-static const Ref FailOnBinding(const Ref &ref, const std::string &value) {
+inline const Ref FailOnBinding(const Ref &ref, const std::string &value) {
   LOG(FATAL) << "Binding not allowed: " << ref << " <- " << value;
   return {}; // unreachable
 };

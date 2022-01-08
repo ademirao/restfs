@@ -1,4 +1,4 @@
-#define FUSE_USE_VERSION 35
+#define FUSE_USE_VERSION 36
 
 #include "http.h"
 #include "logger.h"
@@ -40,9 +40,9 @@ inline bool ends_with(const std::string &value, const std::string &ending) {
 
 int str_to_buffer(const std::string &content, char *buf, size_t size,
                   off_t offset) {
-  size_t len = content.length();
+  const size_t len = content.length();
 
-  if (offset >= len) {
+  if (offset >= (off_t)len) {
     return 0;
   }
 
@@ -58,14 +58,15 @@ int str_to_buffer(const std::string &content, char *buf, size_t size,
 const std::string ReadMetadataNode(const path::Path &path,
                                    const path::Node &node) {
   const Json::Value *v = node.data<Json::Value>();
-  Json::FastWriter fw;
-  return fw.write(*v);
+  Json::StreamWriterBuilder builder;
+  builder["indentation"] = "  "; // assume default for comments is None
+  return Json::writeString(builder, v);
 }
 
 const std::string ReadEntityNode(const path::Path &path,
                                  const path::Node &node) {
   const openapi::Entity *v = node.data<openapi::Entity>();
-  return "";
+  return v->path.string();
 }
 
 const std::string ReadOperationNode(const path::Path &path,
@@ -81,13 +82,13 @@ const std::string ReadOperationNode(const path::Path &path,
   const path::Path value_path =
       path::utils::BindRefs(path, path::utils::ValueBinder);
 
-  auto response = http::Request(find_it->second)
-                      .fetch(directory->directory_url_prefix() +
-                             value_path.parent_path().string());
-  if (response->http_code != 200) {
+  const http::Response response = http::Request(find_it->second)
+                                      .fetch(directory->directory_url_prefix() +
+                                             value_path.parent_path().string());
+  if (response.http_code != 200) {
     return "";
   }
-  return response->data.str();
+  return response.data.str();
 }
 
 int api_read(const char *in_path, char *buf, size_t size, off_t offset,
@@ -105,7 +106,6 @@ int api_read(const char *in_path, char *buf, size_t size, off_t offset,
   }
 
   if (ends_with(path.filename().string(), "entity.json")) {
-
     return str_to_buffer(ReadEntityNode(path, it->second), buf, size, offset);
   }
 
@@ -119,12 +119,6 @@ int api_write(const char *in_path, const char *buf, size_t size, off_t offset,
   const auto it = directory->find(ref_path);
   if (it == directory->end()) {
     return -ENOENT;
-  }
-  path::Path path = it->first;
-  std::string filecontent = "";
-  if (ends_with(path.filename().string(), "entity.json")) {
-    const openapi::Entity *v = it->second.data<openapi::Entity>();
-    path = v->write_path;
   }
 
   return size;
@@ -169,14 +163,15 @@ void *api_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
   auto json_data = std::make_unique<Json::Value>();
   const std::string prefix = api_spec_path.substr(0, HTTP_PREFIX.length());
   if (prefix == HTTP_PREFIX) {
-    const auto response = request.fetch(api_spec_path);
-    CHECK(response->http_code == 200);
-    response->data >> *json_data;
+    http::Response response = request.fetch(api_spec_path);
+    CHECK(response.http_code == 200);
+    response.data >> *json_data;
   } else {
     std::ifstream stream;
     stream.open(api_spec_path.c_str());
     if (!stream.is_open()) {
       LOG(FATAL) << "Failed to open: " << api_spec_path << "";
+      return nullptr; // unreachable
     }
     std::stringstream buffer;
     buffer << stream.rdbuf();
@@ -186,7 +181,6 @@ void *api_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
   const std::string &api_addr = getenv("API_ADDR");
   directory =
       openapi::NewDirectoryFromJsonValue(api_addr, std::move(json_data));
-
   return 0;
 }
 
@@ -207,5 +201,8 @@ int main(int argc, char *argv[]) {
       .init = api_init,
   };
 
-  return fuse_main(argc, argv, &fuse, nullptr);
+  LOG(INFO) << "CREATED";
+  auto err = fuse_main(argc, argv, &fuse, nullptr);
+  LOG(INFO) << "FUSE FUDEU " << err;
+  return err;
 }

@@ -1,5 +1,5 @@
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef __LOGGER_H
+#define __LOGGER_H
 
 #include <ctime>
 #include <iostream>
@@ -38,4 +38,4 @@ private:
     LOG(FATAL) << #EXP << " evaluate to false. " << (MSG);                     \
   }
 #define CHECK(EXP) CHECK_M(EXP, "")
-#endif
+#endif // __LOGGER_H
