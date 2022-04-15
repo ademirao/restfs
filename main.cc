@@ -28,7 +28,7 @@ ABSL_FLAG(std::string, api_spec_addr, "/dev/null",
 ABSL_FLAG(std::string, api_host_addr, "",
           "Address of the API spec (openapi.json).");
 
-ABSL_FLAG(std::string, fuse_flags, "",
+ABSL_FLAG(std::string, mount_location, "",
           "Comma separated list of flags to be forwarded to fuse.");
 
 ABSL_FLAG(std::string, header_file_addr, "/dev/null",
@@ -228,9 +228,14 @@ int main(int argc, char *argv[]) {
   // If the command-line contains a value for logtostderr, use that. Otherwise,
   // use the default (as set above).
   absl::ParseCommandLine(argc, argv);
-  LOG(INFO)<< "LOADING...";
+  LOG(INFO) << "LOADING...";
   openapi::Directory dir = LoadDirectoryFromFlags();
   LOG(INFO) << "LOADED!! " << &dir;
-  auto err = fuse_main(argc, argv, &fuse, &dir);
-  return 1;
+
+  std::string mount_location = absl::GetFlag(FLAGS_mount_location);
+
+  char *args[] = {"-s", "-f", const_cast<char *>(mount_location.c_str())};
+  auto err = fuse_main(sizeof(args)/sizeof(char*), args, &fuse, &dir);
+  LOG(INFO) << "errorr" << err;
+  return err;
 }
