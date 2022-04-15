@@ -2,6 +2,7 @@
 #include "logger.h"
 #include <curl/curl.h>
 #include <sstream>
+#include <algorithm>
 
 namespace http {
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb,
@@ -12,18 +13,9 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb,
   return realsize;
 }
 
-Response Request::fetch(const std::string &url) {
+Response Request::fetch(const std::string &url) const {
   Response response;
-  CURL *curl = curl_easy_init();
-  CHECK(curl != NULL);
-  struct curl_slist *headers = nullptr;
-  for (int i = 0; i < 10; ++i) {
-    const char *headeri = std::getenv(("HEADER" + std::to_string(i)).c_str());
-    if (headeri == nullptr) {
-      break;
-    }
-    headers = curl_slist_append(headers, headeri);
-  }
+  CURL *curl = curl_.get();
   std::string operation_str = rest::constants::OPERATION_NAMES[operation_];
 
   std::transform(operation_str.begin(), operation_str.end(),
@@ -31,7 +23,7 @@ Response Request::fetch(const std::string &url) {
   LOG(INFO) << "OPERATION: " << operation_str;
   CHECK(curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, operation_str.c_str()) ==
         CURLE_OK);
-  CHECK(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers) == CURLE_OK);
+  CHECK(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers_) == CURLE_OK);
   CHECK(curl_easy_setopt(curl, CURLOPT_URL, url.c_str()) == CURLE_OK);
   CHECK(curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5) == CURLE_OK);
   CHECK(curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L) == CURLE_OK);
@@ -44,8 +36,6 @@ Response Request::fetch(const std::string &url) {
   CHECK(curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE,
                           &(response.http_code)) == CURLE_OK);
   LOG(INFO) << "Fetched (Code: " << response.http_code << ")";
-  curl_easy_cleanup(curl);
-  curl_slist_free_all(headers);
   return response;
 }
 

@@ -22,8 +22,8 @@ enum OPERATIONS {
   TRACE = 7,
 };
 
-static const char *OPERATION_NAMES[] = {"get",     "put",  "post",  "delete",
-                                 "options", "head", "patch", "trace"};
+const char *const OPERATION_NAMES[] = {"get",     "put",  "post",  "delete",
+                                       "options", "head", "patch", "trace"};
 
 const std::unordered_map<std::string, OPERATIONS> &operations_map();
 std::vector<OPERATIONS> operations(const Json::Value &value);

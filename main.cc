@@ -1,5 +1,7 @@
 #define FUSE_USE_VERSION 36
 
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
 #include "http.h"
 #include "logger.h"
 #include "openapi.h"
@@ -13,18 +15,37 @@
 #include <fuse3/fuse.h>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <string.h>
 #include <string>
 #include <unistd.h>
 #include <unordered_set>
 
-std::unique_ptr<const openapi::Directory> directory;
+ABSL_FLAG(std::string, api_spec_addr, "/dev/null",
+          "Address of the API spec (openapi.json). May be local path or url "
+          "starting with 'http'.");
+
+ABSL_FLAG(std::string, api_host_addr, "",
+          "Address of the API spec (openapi.json).");
+
+ABSL_FLAG(std::string, fuse_flags, "",
+          "Comma separated list of flags to be forwarded to fuse.");
+
+ABSL_FLAG(std::string, header_file_addr, "/dev/null",
+          "List of headers to be attached");
+
+const openapi::Directory *directory() {
+  const openapi::Directory *directory =
+      static_cast<openapi::Directory *>(fuse_get_context()->private_data);
+  CHECK_M(directory != nullptr, "Null directory");
+  return directory;
+}
 
 int api_getattr(const char *path, struct stat *stat,
                 struct fuse_file_info *fi) {
-  LOG(INFO) << "api_get_attr: " << path;
-  auto found = directory->find(path);
-  if (found == directory->end()) {
+  // LOG(INFO) << "api_get_attr: " << path;
+  auto found = directory()->find(path);
+  if (found == directory()->end()) {
     LOG(INFO) << "NOT FOUND!";
     return -ENOENT;
   }
@@ -82,9 +103,10 @@ const std::string ReadOperationNode(const path::Path &path,
   const path::Path value_path =
       path::utils::BindRefs(path, path::utils::ValueBinder);
 
-  const http::Response response = http::Request(find_it->second)
-                                      .fetch(directory->directory_url_prefix() +
-                                             value_path.parent_path().string());
+  const http::Response response =
+      http::Request(find_it->second)
+          .fetch(directory()->directory_url_prefix() +
+                 value_path.parent_path().string());
   if (response.http_code != 200) {
     return "";
   }
@@ -96,8 +118,8 @@ int api_read(const char *in_path, char *buf, size_t size, off_t offset,
   LOG(INFO) << "api_read " << in_path;
   const path::Path ref_path =
       path::utils::BindRefs(in_path, path::utils::ReferenceBinder);
-  const auto it = directory->find(ref_path);
-  if (it == directory->end()) {
+  const auto it = directory()->find(ref_path);
+  if (it == directory()->end()) {
     return -ENOENT;
   }
   const path::Path path = it->first;
@@ -116,8 +138,8 @@ int api_write(const char *in_path, const char *buf, size_t size, off_t offset,
               struct fuse_file_info *fi) {
   const path::Path ref_path =
       path::utils::BindRefs(in_path, path::utils::ReferenceBinder);
-  const auto it = directory->find(ref_path);
-  if (it == directory->end()) {
+  const auto it = directory()->find(ref_path);
+  if (it == directory()->end()) {
     return -ENOENT;
   }
 
@@ -135,8 +157,8 @@ int api_readdir(const char *path_str, void *buf, fuse_fill_dir_t filler,
   const path::Path path(path::utils::PathToRefValueMap(path_str));
   const path::Path &filename(path.filename());
 
-  auto it = directory->find(path);
-  if (it == directory->end()) {
+  auto it = directory()->find(path);
+  if (it == directory()->end()) {
     return -ENOENT;
   }
 
@@ -155,33 +177,36 @@ static int api_readlink(const char *path, char *buf, size_t size) {
   return 0;
 }
 
-void *api_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
-  cfg->direct_io = 1;
-  http::Request request;
+std::stringstream read_content(const std::string &address) {
   static const std::string HTTP_PREFIX = "http";
-  const std::string api_spec_path = getenv("API_SPEC");
-  auto json_data = std::make_unique<Json::Value>();
-  const std::string prefix = api_spec_path.substr(0, HTTP_PREFIX.length());
+  http::Request request;
+  const std::string prefix = address.substr(0, HTTP_PREFIX.length());
   if (prefix == HTTP_PREFIX) {
-    http::Response response = request.fetch(api_spec_path);
+    http::Response response = request.fetch(address);
     CHECK(response.http_code == 200);
-    response.data >> *json_data;
-  } else {
-    std::ifstream stream;
-    stream.open(api_spec_path.c_str());
-    if (!stream.is_open()) {
-      LOG(FATAL) << "Failed to open: " << api_spec_path << "";
-      return nullptr; // unreachable
-    }
-    std::stringstream buffer;
-    buffer << stream.rdbuf();
-    buffer >> *json_data;
+    return std::move(response.data);
   }
 
-  const std::string &api_addr = getenv("API_ADDR");
-  directory =
-      openapi::NewDirectoryFromJsonValue(api_addr, std::move(json_data));
-  return 0;
+  std::ifstream stream;
+  stream.open(address.c_str());
+  CHECK_M(stream.is_open(), "Failed to open: " + address + "");
+  std::stringstream buffer;
+  buffer << stream.rdbuf();
+  return buffer;
+}
+
+openapi::Directory LoadDirectoryFromFlags() {
+  std::stringstream api_spec_stream =
+      read_content(absl::GetFlag(FLAGS_api_spec_addr));
+  const std::string &api_host_addr = absl::GetFlag(FLAGS_api_host_addr);
+  std::stringstream headers_file_stream =
+      read_content(absl::GetFlag(FLAGS_header_file_addr));
+
+  auto json_data = std::make_unique<Json::Value>();
+  api_spec_stream >> *json_data;
+
+  return openapi::NewDirectoryFromJsonValue(api_host_addr,
+                                            std::move(json_data));
 }
 
 int api_truncate(const char *path, off_t off, struct fuse_file_info *fi) {
@@ -198,11 +223,14 @@ int main(int argc, char *argv[]) {
       .write = api_write,
       .statfs = api_statfs,
       .readdir = api_readdir,
-      .init = api_init,
   };
 
-  LOG(INFO) << "CREATED";
-  auto err = fuse_main(argc, argv, &fuse, nullptr);
-  LOG(INFO) << "FUSE FUDEU " << err;
-  return err;
+  // If the command-line contains a value for logtostderr, use that. Otherwise,
+  // use the default (as set above).
+  absl::ParseCommandLine(argc, argv);
+  LOG(INFO)<< "LOADING...";
+  openapi::Directory dir = LoadDirectoryFromFlags();
+  LOG(INFO) << "LOADED!! " << &dir;
+  auto err = fuse_main(argc, argv, &fuse, &dir);
+  return 1;
 }

@@ -194,7 +194,7 @@ public:
       break;
     }
     LOG(FATAL) << "Unsupported operation: " << op;
-    return path::Node(path::Path(), {}, nullptr, 0); // Unreachable
+    return path::Node({{}, {}, nullptr, 0}); // Unreachable
   }
 
   path::Node EntityOperationNode(const path::Path &path,
@@ -206,7 +206,7 @@ private:
   const Json::Value *root_;
 }; // namespace openapi
 
-std::unique_ptr<const Directory>
+Directory
 NewDirectoryFromJsonValue(const std::string &host,
                           std::unique_ptr<const Json::Value> json_data) {
   NodeFactory factory(json_data.get());
@@ -254,6 +254,7 @@ NewDirectoryFromJsonValue(const std::string &host,
   const Json::Value &paths = (*json_data)["paths"];
   for (auto it = paths.begin(), end = paths.end(); it != end; ++it) {
     const path::Path path = path::utils::PathToRefValueMap(it.key().asString());
+    LOG(INFO) << "CURRENT" << path;
     const Json::Value &value = *it;
 
     [&path, &value, &root, &insert_node, &insert_rest_operations_metadata]() {
@@ -265,26 +266,28 @@ NewDirectoryFromJsonValue(const std::string &host,
             insert_node(current_path, path::DirNode(part, nullptr));
         parent = &insert_pair.first->second;
       }
+      LOG(INFO) << "INSERT REST OPERA" << current_path;
       insert_rest_operations_metadata(current_path, value);
     }();
   }
 
   std::vector<Entity> entities;
-  entities.emplace_back(
-      (Entity){.path = "/user-operations/users/user.entity.json",
-               .read_path = "/user-operations/users/get.json",
-               .write_path = "/user-operations/users/post.json",
-               .delete_path = "/user-operations/users/delete.json",
-               .modes = S_IREAD | S_IWRITE});
+  // entities.emplace_back(
+  //     (Entity){.path = "/user-operations/users/user.entity.json",
+  //              .read_path = "/user-operations/users/get.json",
+  //              .write_path = "/user-operations/users/post.json",
+  //              .delete_path = "/user-operations/users/delete.json",
+  //              .modes = S_IREAD | S_IWRITE});
 
-  for (const Entity &entity : entities) {
-    insert_node(entity.path,
-                factory.EntityOperationNode(entity.path.filename(), &entity));
-  }
+  // for (const Entity &entity : entities) {
+  //   insert_node(entity.path,
+  //               factory.EntityOperationNode(entity.path.filename(),
+  //               &entity));
+  // }
 
-  LOG(INFO) << "::::::"<< path_to_node_map;
-  return std::make_unique<Directory>(host, std::move(path_to_node_map),
-                                     std::move(entities), std::move(json_data));
+  LOG(INFO) << "::::::" << path_to_node_map;
+  return Directory(host, std::move(path_to_node_map), std::move(entities),
+                   std::move(json_data));
 }
 
 const Json::Value JsonValueFromPath(const path::Path &path) {
@@ -301,7 +304,6 @@ const Json::Value JsonValueFromPath(const path::Path &path) {
 PathToNodeMap::const_iterator Directory::find(const path::Path &path) const {
   auto canonical_path = path::utils::PathToRefValueMap(path);
   const Json::Value from_path = JsonValueFromPath(path);
-  LOG(INFO) << "ademirao: " << path_to_node_map_;
   return path_to_node_map_.find(canonical_path);
 }
 

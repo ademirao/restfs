@@ -37,34 +37,33 @@ template <> struct hash<path::Path> {
 
 namespace path {
 
+struct DataImpl {
+  const Path path_;
+  const struct stat stat_;
+  const void *data_;
+  const size_t data_size_;
+};
+
 class Node final {
 public:
-  Node(const Node &node)
-      : path_(node.path_), stat_(node.stat_), 
-        data_(node.data_), data_size_(node.data_size_),children_(node.children_) {}
-  Node(const Path &path, const struct stat &stat, const void *data,
-       const size_t data_size)
-      : path_(path), stat_(stat), data_(data), data_size_(data_size) {}
+  Node(const Node &node) : data_(node.data_), children_(node.children_) {}
+  Node(const DataImpl &data) : data_(data) {}
 
-  const Path &path() const { return path_; }
+  const Path &path() const { return data_.path_; }
 
-  const struct stat &stat() const { return stat_; }
+  const struct stat &stat() const { return data_.stat_; }
 
   template <typename Data> const Data *data() const {
-    return static_cast<const Data *>(data_);
+    return static_cast<const Data *>(data_.data_);
   }
 
-  const size_t data_size() { return data_size_; }
-
+  const size_t data_size() { return data_.data_size_; }
   std::vector<const path::Node *> *mutable_children() { return &children_; }
 
   const std::vector<const path::Node *> &children() const { return children_; }
 
 private:
-  const Path path_;
-  const struct stat stat_;
-  const void *data_;
-  const size_t data_size_;
+  const DataImpl data_;
   std::vector<const path::Node *> children_;
 };
 
@@ -95,17 +94,17 @@ bool IsReference(const path::Path &path_part);
 bool HasReference(const path::Path &path_part);
 const path::Path ValuedPath(const path::Path &pat);
 
-const Binder ValueBinder =
-    [](const Reference &ref, const Value &value) -> const Reference {
+const Binder ValueBinder = [](const Reference &ref,
+                              const Value &value) -> const Reference {
   return value;
 };
 
-const Binder ReferenceBinder =
-    [](const Reference &ref, const Value &value) -> const Reference {
+const Binder ReferenceBinder = [](const Reference &ref,
+                                  const Value &value) -> const Reference {
   return "{" + ref + "}";
 };
 const path::Path PathToRefValueMap(const path::Path &pat,
-                                  RefValueMap *ref_value_map = nullptr);
+                                   RefValueMap *ref_value_map = nullptr);
 const RefSet RefSetFromPath(const path::Path &path);
 const path::Path BindRefs(const path::Path &path, Binder binder);
 

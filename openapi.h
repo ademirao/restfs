@@ -28,7 +28,7 @@ using PathToNodeMap = std::map<path::Path, path::Node>;
 
 class Directory;
 
-std::unique_ptr<const Directory>
+Directory
 NewDirectoryFromJsonValue(const std::string &host_name,
                           std::unique_ptr<const Json::Value> json_data);
 const Json::Value JsonValueFromPath(const path::Path &path);
