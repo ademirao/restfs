@@ -41,7 +41,7 @@ struct DataImpl {
   const Path path_;
   const struct stat stat_;
   const void *data_;
-  const size_t data_size_;
+ // const size_t data_size_;
 };
 
 class Node final {
@@ -57,7 +57,7 @@ public:
     return static_cast<const Data *>(data_.data_);
   }
 
-  const size_t data_size() { return data_.data_size_; }
+  //const size_t data_size() { return data_.data_size_; }
   std::vector<const path::Node *> *mutable_children() { return &children_; }
 
   const std::vector<const path::Node *> &children() const { return children_; }

@@ -1,15 +1,14 @@
 #include "http.h"
 #include "logger.h"
+#include <algorithm>
 #include <curl/curl.h>
 #include <sstream>
-#include <algorithm>
 
 namespace http {
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb,
                                   Response *resp) {
   const size_t realsize = size * nmemb;
   resp->data << std::string((const char *)contents, realsize);
-  LOG(INFO) << "Response: " << resp->data.str();
   return realsize;
 }
 
@@ -23,7 +22,8 @@ Response Request::fetch(const std::string &url) const {
   LOG(INFO) << "OPERATION: " << operation_str;
   CHECK(curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, operation_str.c_str()) ==
         CURLE_OK);
-  CHECK(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers_) == CURLE_OK);
+  CHECK(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers_.headers()) ==
+        CURLE_OK);
   CHECK(curl_easy_setopt(curl, CURLOPT_URL, url.c_str()) == CURLE_OK);
   CHECK(curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5) == CURLE_OK);
   CHECK(curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L) == CURLE_OK);

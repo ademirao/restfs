@@ -34,19 +34,31 @@ ABSL_FLAG(std::string, mount_location, "",
 ABSL_FLAG(std::string, header_file_addr, "/dev/null",
           "List of headers to be attached");
 
-const openapi::Directory *directory() {
-  const openapi::Directory *directory =
-      static_cast<openapi::Directory *>(fuse_get_context()->private_data);
-  CHECK_M(directory != nullptr, "Null directory");
-  return directory;
+struct PrivateContext {
+  const openapi::Directory dir_;
+  const http::Headers headers_;
+};
+
+const PrivateContext *private_context() {
+  const PrivateContext *ctx = static_cast<const PrivateContext *>(fuse_get_context()->private_data);
+  CHECK_M(ctx != nullptr, "Null private context");
+  return ctx;
+}
+
+const openapi::Directory &directory() {
+  return private_context()->dir_;
+}
+
+const http::Headers &headers() {
+  return private_context()->headers_;
 }
 
 int api_getattr(const char *path, struct stat *stat,
                 struct fuse_file_info *fi) {
-  // LOG(INFO) << "api_get_attr: " << path;
-  auto found = directory()->find(path);
-  if (found == directory()->end()) {
-    LOG(INFO) << "NOT FOUND!";
+  LOG(INFO) << "api_get_attr: " << path;
+  auto found = directory().find(path);
+  if (found == directory().end()) {
+    LOG(INFO) << path << " - NOT FOUND!";
     return -ENOENT;
   }
   *stat = found->second.stat();
@@ -78,10 +90,11 @@ int str_to_buffer(const std::string &content, char *buf, size_t size,
 
 const std::string ReadMetadataNode(const path::Path &path,
                                    const path::Node &node) {
-  const Json::Value *v = node.data<Json::Value>();
+  const Json::Value *data = node.data<Json::Value>();
   Json::StreamWriterBuilder builder;
   builder["indentation"] = "  "; // assume default for comments is None
-  return Json::writeString(builder, v);
+  const std::string result = Json::writeString(builder, *data);
+  return result;
 }
 
 const std::string ReadEntityNode(const path::Path &path,
@@ -104,10 +117,11 @@ const std::string ReadOperationNode(const path::Path &path,
       path::utils::BindRefs(path, path::utils::ValueBinder);
 
   const http::Response response =
-      http::Request(find_it->second)
-          .fetch(directory()->directory_url_prefix() +
+      http::Request(find_it->second, headers())
+          .fetch(directory().directory_url_prefix() +
                  value_path.parent_path().string());
   if (response.http_code != 200) {
+    LOG(INFO) << response.data.str();
     return "";
   }
   return response.data.str();
@@ -118,8 +132,8 @@ int api_read(const char *in_path, char *buf, size_t size, off_t offset,
   LOG(INFO) << "api_read " << in_path;
   const path::Path ref_path =
       path::utils::BindRefs(in_path, path::utils::ReferenceBinder);
-  const auto it = directory()->find(ref_path);
-  if (it == directory()->end()) {
+  const auto it = directory().find(ref_path);
+  if (it == directory().end()) {
     return -ENOENT;
   }
   const path::Path path = it->first;
@@ -138,8 +152,8 @@ int api_write(const char *in_path, const char *buf, size_t size, off_t offset,
               struct fuse_file_info *fi) {
   const path::Path ref_path =
       path::utils::BindRefs(in_path, path::utils::ReferenceBinder);
-  const auto it = directory()->find(ref_path);
-  if (it == directory()->end()) {
+  const auto it = directory().find(ref_path);
+  if (it == directory().end()) {
     return -ENOENT;
   }
 
@@ -157,8 +171,8 @@ int api_readdir(const char *path_str, void *buf, fuse_fill_dir_t filler,
   const path::Path path(path::utils::PathToRefValueMap(path_str));
   const path::Path &filename(path.filename());
 
-  auto it = directory()->find(path);
-  if (it == directory()->end()) {
+  auto it = directory().find(path);
+  if (it == directory().end()) {
     return -ENOENT;
   }
 
@@ -199,8 +213,6 @@ openapi::Directory LoadDirectoryFromFlags() {
   std::stringstream api_spec_stream =
       read_content(absl::GetFlag(FLAGS_api_spec_addr));
   const std::string &api_host_addr = absl::GetFlag(FLAGS_api_host_addr);
-  std::stringstream headers_file_stream =
-      read_content(absl::GetFlag(FLAGS_header_file_addr));
 
   auto json_data = std::make_unique<Json::Value>();
   api_spec_stream >> *json_data;
@@ -225,17 +237,24 @@ int main(int argc, char *argv[]) {
       .readdir = api_readdir,
   };
 
-  // If the command-line contains a value for logtostderr, use that. Otherwise,
-  // use the default (as set above).
+  // If the command-line contains a value for logtostderr, use that.
+  // Otherwise, use the default (as set above).
   absl::ParseCommandLine(argc, argv);
-  LOG(INFO) << "LOADING...";
-  openapi::Directory dir = LoadDirectoryFromFlags();
-  LOG(INFO) << "LOADED!! " << &dir;
+
+  std::stringstream headers_file_stream =
+      read_content(absl::GetFlag(FLAGS_header_file_addr));
+  http::Headers headers;
+  for (std::string line; std::getline(headers_file_stream, line);) {
+    headers.AppendHeaderLine(line);
+  }
+  PrivateContext private_context = {
+      LoadDirectoryFromFlags(),
+      headers,
+  };
 
   std::string mount_location = absl::GetFlag(FLAGS_mount_location);
-
-  char *args[] = {"-s", "-f", const_cast<char *>(mount_location.c_str())};
-  auto err = fuse_main(sizeof(args)/sizeof(char*), args, &fuse, &dir);
-  LOG(INFO) << "errorr" << err;
-  return err;
+  char *args[] = {argv[0] /* argv[0] = program name */, "-s", "-f",
+                  const_cast<char *>(mount_location.c_str())};
+  return fuse_main(sizeof(args) / sizeof(char *), args, &fuse,
+                   &private_context);
 }

@@ -67,20 +67,13 @@ cc_binary(
     deps = [":restfs_lib"],
 )
 
-genrule(
-    name = "restfs_sh",
-    srcs = ["//:examples"],
-    outs = ["restfs.sh"],
-    cmd = "echo ./restfs '$${@}' > $@",
-)
-
 [
     rule
     for f in glob(["examples/**/openapi.json"])
     for rule in [
         sh_binary(
             name = "run_" + f,
-            srcs = [":restfs.sh"],
+            srcs = [":restfs"],
             data = ["//:%s" % f, ":restfs"],
             args = ["--api_spec_addr=$(location %s)" % f],
         ),

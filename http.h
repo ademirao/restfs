@@ -24,19 +24,22 @@ class Headers {
 public:
   Headers() : headers_(nullptr) {}
   ~Headers() { curl_slist_free_all(headers_); }
-  Headers &AppendHeaderLine(const char *header_line) {
-    headers_ = curl_slist_append(headers_, header_line);
+  Headers &AppendHeaderLine(const std::string &header_line) {
+    headers_storage_.push_back(header_line);
+    headers_ = curl_slist_append(headers_, headers_storage_.back().c_str());
     return *this;
   }
+  const struct curl_slist *headers() const {return headers_; }
 
 private:
+  std::vector<std::string> headers_storage_;
   struct curl_slist *headers_;
 };
 
 class Request final {
 public:
   Request(const rest::constants::OPERATIONS operation = rest::constants::GET,
-          const Headers *headers = nullptr)
+          const Headers &headers = Headers())
       : operation_(operation), curl_(curl_easy_init()), headers_(headers) {
     CHECK(curl_ != NULL);
   }
@@ -48,7 +51,7 @@ private:
   };
   const rest::constants::OPERATIONS operation_;
   const std::unique_ptr<CURL, CurlCleanup> curl_;
-  const Headers *headers_;
+  const Headers &headers_;
 };
 } // namespace http
 

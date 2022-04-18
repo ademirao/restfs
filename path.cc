@@ -52,7 +52,7 @@ path::Node SimpleFileNode(const path::Path &path, const void *data,
   s.st_blksize = s.st_size; /* Block size for filesystem I/O */
   s.st_blocks =
       std::ceil(s.st_size / 512); /* Number of 512B blocks allocated */
-  return path::Node({path, s, data, data_size});
+  return path::Node({path, s, data});
 }
 
 path::Node DirNode(const path::Path &path, const void *data) {
@@ -67,7 +67,7 @@ path::Node DirNode(const path::Path &path, const void *data) {
   s.st_size = 0;                             /* Total size, in bytes */
   s.st_blksize = 0;                          /* Block size for filesystem I/O */
   s.st_blocks = 0; /* Number of 512B blocks allocated */
-  return path::Node({path, s, data, 0});
+  return path::Node({path, s, data});
 }
 
 namespace utils {
@@ -93,9 +93,8 @@ const path::Path PathToRefValueMap(const path::Path &path,
 
         if (!insert_it.second) { // not inserted
           CHECK_M(insert_it.first->second.empty(),
-                  "Duplicated reference: " + insert_it.first->first + ", "
-                                           + insert_it.first->second
-                                           + " trying assign " + value);
+                  "Duplicated reference: " + insert_it.first->first + ", " +
+                      insert_it.first->second + " trying assign " + value);
           insert_it.first->second = value;
           LOG(INFO) << "Found duplicated reference with null value. Assigned: "
                     << insert_it.first->second;

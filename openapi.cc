@@ -194,7 +194,7 @@ public:
       break;
     }
     LOG(FATAL) << "Unsupported operation: " << op;
-    return path::Node({{}, {}, nullptr, 0}); // Unreachable
+    return path::Node({{}, {}, nullptr}); // Unreachable
   }
 
   path::Node EntityOperationNode(const path::Path &path,
@@ -254,7 +254,6 @@ NewDirectoryFromJsonValue(const std::string &host,
   const Json::Value &paths = (*json_data)["paths"];
   for (auto it = paths.begin(), end = paths.end(); it != end; ++it) {
     const path::Path path = path::utils::PathToRefValueMap(it.key().asString());
-    LOG(INFO) << "CURRENT" << path;
     const Json::Value &value = *it;
 
     [&path, &value, &root, &insert_node, &insert_rest_operations_metadata]() {
@@ -266,7 +265,6 @@ NewDirectoryFromJsonValue(const std::string &host,
             insert_node(current_path, path::DirNode(part, nullptr));
         parent = &insert_pair.first->second;
       }
-      LOG(INFO) << "INSERT REST OPERA" << current_path;
       insert_rest_operations_metadata(current_path, value);
     }();
   }
@@ -285,7 +283,6 @@ NewDirectoryFromJsonValue(const std::string &host,
   //               &entity));
   // }
 
-  LOG(INFO) << "::::::" << path_to_node_map;
   return Directory(host, std::move(path_to_node_map), std::move(entities),
                    std::move(json_data));
 }
